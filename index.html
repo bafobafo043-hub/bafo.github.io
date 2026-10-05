@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スタミナ・バテ判定計算機</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef4fb;
+    --green:#1a7d42;
+    --green-dark:#0f5c30;
+    --green-pale:#eaf6ee;
+    --border:#d8dce0;
+    --text:#111111;
+    --text-dim:#555555;
+    --red:#c0392b;
+    --red-pale:#fdecea;
+    --gold:#b8860b;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Zen Kaku Gothic New", sans-serif;
+    padding:28px 16px 80px;
+    min-height:100vh;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+
+  header{
+    position:relative;
+    padding:30px 30px 26px;
+    margin-bottom:28px;
+    background:#ffffff;
+    border:2px solid var(--green);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .eyebrow{
+    color:var(--green);
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;
+    letter-spacing:.22em;
+    font-weight:700;
+    margin:0 0 10px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:"";width:22px;height:2px;background:var(--green);display:inline-block;}
+  h1{
+    color:var(--green);
+    font-size:clamp(24px,4vw,34px);
+    font-weight:900;
+    margin:0 0 10px;
+    letter-spacing:.01em;
+    line-height:1.3;
+  }
+  header p.lead{
+    color:var(--text);
+    font-size:14px;
+    line-height:1.9;
+    max-width:660px;
+    margin:0;
+  }
+  header p.lead b{color:var(--green); font-weight:700;}
+
+  section{
+    background:#ffffff;
+    border-radius:var(--radius);
+    padding:22px 24px 26px;
+    margin-bottom:18px;
+    border:1px solid var(--border);
+    box-shadow:0 2px 8px -4px rgba(0,0,0,0.08);
+  }
+  .sec-head{
+    display:flex; align-items:baseline; gap:10px;
+    margin-bottom:16px;
+    padding-bottom:12px;
+    border-bottom:2px solid var(--green);
+  }
+  .sec-num{
+    font-family:"JetBrains Mono",monospace;
+    font-weight:700; font-size:13px;
+    color:#ffffff;
+    background:var(--green);
+    padding:3px 8px;
+    border-radius:4px;
+  }
+  .sec-title{font-size:17px; font-weight:700; margin:0; color:var(--green);}
+  .sec-sub{font-size:12.5px; color:var(--text-dim); margin:-8px 0 16px 40px;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px;}
+  .field label{
+    display:block; font-size:12px; font-weight:700; color:var(--text-dim);
+    margin-bottom:6px; letter-spacing:.02em;
+  }
+  .field input[type=number], .field select{
+    width:100%; padding:9px 10px; font-size:14px;
+    border:1.5px solid var(--border); border-radius:6px; background:#fff;
+    font-family:"JetBrains Mono",monospace; color:var(--text);
+  }
+  .field select{font-family:"Zen Kaku Gothic New",sans-serif;}
+  .field input:focus, .field select:focus{outline:2px solid var(--green); outline-offset:1px; border-color:var(--green);}
+  .hint{font-size:11px; color:var(--text-dim); margin-top:4px;}
+
+  .btn{
+    border:none; cursor:pointer; font-family:"Zen Kaku Gothic New",sans-serif; font-weight:700;
+    border-radius:6px; padding:8px 14px; font-size:13px; transition:transform .08s ease;
+  }
+  .btn:active{transform:scale(0.96);}
+  .btn-add{background:var(--green); color:#ffffff;}
+  .btn-add:hover{background:var(--green-dark);}
+  .btn-del{background:transparent; color:var(--red); border:1.5px solid var(--red); padding:6px 10px; font-size:16px; line-height:1;}
+  .btn-del:hover{background:var(--red); color:#fff;}
+  .row-actions{margin-top:10px; display:flex; gap:8px;}
+
+  .skill-row{display:grid; grid-template-columns:1.6fr 0.9fr 0.7fr 1fr auto auto; gap:8px; align-items:center; margin-bottom:8px;}
+  .skill-row input[type=text]{padding:8px 9px; border:1.3px solid var(--border); border-radius:5px; font-family:"Zen Kaku Gothic New",sans-serif; font-size:13px;}
+  .skill-row input[type=number]{padding:8px 9px; border:1.3px solid var(--border); border-radius:5px; font-family:"JetBrains Mono",monospace; font-size:13px;}
+  .skill-row select{padding:8px 9px; border:1.3px solid var(--border); border-radius:5px; font-size:12.5px;}
+  .skill-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--green);}
+  .col-label{font-size:10.5px; color:var(--text-dim); font-weight:700; letter-spacing:.02em;}
+
+  .tier-row{
+    display:grid; grid-template-columns:auto 1fr auto auto auto 1fr; gap:10px; align-items:center;
+    padding:9px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; background:#fff;
+  }
+  .tier-pct{
+    font-family:"JetBrains Mono",monospace; font-weight:700; font-size:14px; color:var(--green);
+    background:var(--green-pale); border-radius:6px; padding:4px 9px; text-align:center; min-width:56px;
+  }
+  .tier-label{font-size:12px; color:var(--text-dim);}
+  .stepper-btn{
+    width:28px; height:28px; border-radius:6px; border:1.3px solid var(--border); background:#fff; cursor:pointer;
+    font-size:16px; font-weight:700; color:var(--green); line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+  .stepper-btn:hover{background:var(--green); color:#fff; border-color:var(--green);}
+  .tier-count{
+    font-family:"JetBrains Mono",monospace; font-weight:700; font-size:14px; min-width:22px; text-align:center; color:var(--text);
+  }
+  .tier-timing{padding:6px 8px; border:1.3px solid var(--border); border-radius:5px; font-size:12px;}
+
+  table{width:100%; border-collapse:collapse; margin-top:6px; font-size:13px;}
+  thead th{
+    text-align:left; font-size:11px; letter-spacing:.04em; color:var(--text-dim);
+    padding:6px 8px; border-bottom:2px solid var(--green); white-space:nowrap;
+  }
+  tbody td{padding:8px; border-bottom:1px solid var(--border); vertical-align:middle; color:var(--text);}
+  .result-cell{font-family:"JetBrains Mono",monospace; color:var(--green); font-weight:700;}
+
+  .board{
+    border-radius:14px; padding:28px 26px; margin-top:6px;
+    border:1px solid var(--border);
+    transition:background .3s ease;
+  }
+  .board.ok{background:var(--green-pale); border-color:var(--green);}
+  .board.warn{background:#fff8e6; border-color:var(--gold);}
+  .board.fail{background:var(--red-pale); border-color:var(--red);}
+  .board .label{
+    font-family:"JetBrains Mono",monospace; font-size:12px;
+    letter-spacing:.2em; margin-bottom:8px; font-weight:700;
+  }
+  .board.ok .label{color:var(--green-dark);}
+  .board.warn .label{color:var(--gold);}
+  .board.fail .label{color:var(--red);}
+  .board .verdict{
+    font-weight:900; font-size:clamp(26px,5vw,38px); color:var(--text); line-height:1.2;
+  }
+  .board .sub{color:var(--text); font-size:13px; margin-top:10px; line-height:1.9;}
+  .board .sub b{color:var(--green-dark);}
+
+  .rail-track{
+    height:10px; border-radius:5px; background:#e6e6e6; overflow:hidden; margin-top:16px; position:relative;
+    display:flex;
+  }
+  .rail-track .seg{height:100%; position:relative;}
+  .rail-track .seg-label{
+    position:absolute; top:12px; font-size:10px; font-family:"JetBrains Mono",monospace; color:var(--text-dim); white-space:nowrap;
+  }
+  .fail-marker{
+    position:absolute; top:-4px; bottom:-4px; width:3px; background:var(--red);
+    box-shadow:0 0 6px rgba(192,57,43,0.6);
+  }
+
+  details{margin-top:16px;}
+  summary{cursor:pointer; font-size:12.5px; font-weight:700; color:var(--text-dim); padding:6px 0;}
+  summary:hover{color:var(--green);}
+  .adv-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-top:12px;}
+
+  .stat-strip{
+    margin-top:14px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    background:var(--green-pale); border:1px solid var(--green); border-radius:8px; padding:14px 18px;
+  }
+  .stat-strip .k{font-size:11px; letter-spacing:.08em; color:var(--green-dark); font-weight:700;}
+  .stat-strip .v{font-family:"JetBrains Mono",monospace; font-size:20px; font-weight:700; color:var(--text); margin-top:2px;}
+
+  footer{text-align:center; color:#6f8579; font-size:11.5px; margin-top:28px; line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">STAMINA &amp; SPURT FAILURE CHECKER</p>
+    <h1>スタミナ・バテ判定計算機</h1>
+    <p class="lead">
+      ステータス・脚質・コース条件と、回復スキル／持久力消費スキルを入力すると、
+      序盤〜ラストスパートまでの<b>HP推移</b>をフェーズごとにシミュレーションし、
+      <b>持久力を最後まで温存できるか／ラストスパートが途中でバテて終わるか</b>を判定します。
+    </p>
+  </header>
+
+  <!-- 1. ステータス -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2 class="sec-title">ステータス・脚質条件</h2>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <label for="statSpeed">スピード</label>
+        <input type="number" id="statSpeed" value="2150" min="0" step="1">
+        <p class="hint">1200超は超過分を1/2換算</p>
+      </div>
+      <div class="field">
+        <label for="statStamina">スタミナ</label>
+        <input type="number" id="statStamina" value="1600" min="0" step="1">
+        <p class="hint">1200超は超過分を1/2換算</p>
+      </div>
+      <div class="field">
+        <label for="statPower">パワー</label>
+        <input type="number" id="statPower" value="1200" min="1" step="1">
+        <p class="hint">1200超は超過分を1/2換算。加速度・上り坂の速度低下軽減に使用</p>
+      </div>
+      <div class="field">
+        <label for="statGuts">根性</label>
+        <input type="number" id="statGuts" value="1200" min="0" step="1">
+        <p class="hint">1200超は超過分を1/2換算</p>
+      </div>
+      <div class="field">
+        <label for="statWisdom">賢さ</label>
+        <input type="number" id="statWisdom" value="1600" min="0" step="1">
+        <p class="hint">1200超は超過分を1/2換算</p>
+      </div>
+      <div class="field">
+        <label for="styleApt">脚質適性</label>
+        <select id="styleApt">
+          <option value="S">S (×1.10)</option>
+          <option value="A" selected>A (×1.00)</option>
+          <option value="B">B (×0.85)</option>
+          <option value="C">C (×0.75)</option>
+          <option value="D">D (×0.60)</option>
+          <option value="E">E (×0.40)</option>
+          <option value="F">F (×0.20)</option>
+          <option value="G">G (×0.10)</option>
+        </select>
+        <p class="hint">賢さを補正し、掛かり率・下り坂モード判定に使用します</p>
+      </div>
+      <div class="field">
+        <label for="style">脚質</label>
+        <select id="style">
+          <option value="runaway">大逃げ</option>
+          <option value="front">逃げ</option>
+          <option value="pace" selected>先行</option>
+          <option value="late">差し</option>
+          <option value="end">追込</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="distApt">距離適性</label>
+        <select id="distApt">
+          <option value="S">S</option>
+          <option value="A" selected>A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+          <option value="D">D</option>
+          <option value="E">E</option>
+          <option value="F">F</option>
+          <option value="G">G</option>
+        </select>
+        <p class="hint">S〜G全て確認済みの数値です。</p>
+      </div>
+      <div class="field">
+        <label for="surface">馬場種別</label>
+        <select id="surface">
+          <option value="turf" selected>芝</option>
+          <option value="dirt">ダート</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="baba">馬場状態</label>
+        <select id="baba">
+          <option value="firm" selected>良</option>
+          <option value="good">稍重</option>
+          <option value="soft">重</option>
+          <option value="heavy">不良</option>
+        </select>
+        <p class="hint">重・不良でスピード-50。芝は良以外でパワー-50、ダートは稍重以外でパワー-100(稍重は-50)</p>
+      </div>
+      <div class="field">
+        <label for="mood">調子</label>
+        <select id="mood">
+          <option value="1.04">絶好調 (×1.04)</option>
+          <option value="1.02">好調 (×1.02)</option>
+          <option value="1.00" selected>普通 (×1.00)</option>
+          <option value="0.98">不調 (×0.98)</option>
+          <option value="0.96">絶不調 (×0.96)</option>
+        </select>
+        <p class="hint">全ステータスに2%/レベルで乗算されます(1200超の折半より先に適用)</p>
+      </div>
+    </div>
+    <div class="grid" style="margin-top:14px;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--text);font-size:13px;">
+        <input type="checkbox" id="strictModeToggle" style="width:18px;height:18px;accent-color:var(--gold);">
+        キビシメモード
+      </label>
+      <p class="hint" style="grid-column:span 2; align-self:center;">判定をやや厳しめにし、余裕を持ってスタミナが足りているかを確認します。</p>
+    </div>
+  </section>
+
+  <!-- 2. コース選択 -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2 class="sec-title">コース選択</h2>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <label for="venueSelect">レース場</label>
+        <select id="venueSelect"></select>
+      </div>
+      <div class="field">
+        <label for="courseSelect">コース</label>
+        <select id="courseSelect"></select>
+      </div>
+      <div class="field">
+        <label for="courseDistance">コース距離(m)</label>
+        <input type="number" id="courseDistance" value="2000" disabled>
+      </div>
+    </div>
+
+    <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
+      <p class="hint" style="font-weight:700; color:var(--green-dark); margin-bottom:6px;">コース別ステータス閾値ボーナス(該当コースのみ・自動計算)</p>
+      <p class="hint" id="thresholdExplainShow">一部のコースには「特定ステータスの値に応じてスピードが上昇する」補正が設定されています(該当ステータスの値が300ごとに+5%、900超で頭打ちの+20%。2種類ある場合は平均)。選択中のコースに応じて自動的に判定・計算します。</p>
+      <div class="stat-strip" style="margin-top:10px;">
+        <div><div class="k">対象ステータス</div><div class="v" id="thresholdStatShow" style="font-size:18px;">対象コースではありません</div></div>
+        <div><div class="k">スピードへのボーナス係数</div><div class="v" id="thresholdBonusShow" style="font-size:20px;">+0%</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 回復スキル -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2 class="sec-title">回復スキル</h2>
+    </div>
+    <p class="sec-sub">最大HPに対する回復率ごとに、所持している個数を＋／−で入力してください(中盤以降に発動するものとして計算します)</p>
+    <div id="recoveryTierList"></div>
+    <div class="stat-strip" style="margin-top:14px;">
+      <div>
+        <div class="k">回復合計</div>
+        <div class="v" id="recoveryTotalShow" style="font-size:20px;">+0.00%</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 持久力消費スキル -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <h2 class="sec-title">被スタミナデバフ</h2>
+    </div>
+    <p class="sec-sub">最大HPに対する消費増加率ごとに、受ける個数を＋／−で入力してください</p>
+    <div id="drainTierList"></div>
+    <div class="stat-strip" style="margin-top:14px;">
+      <div>
+        <div class="k">消費増加合計</div>
+        <div class="v" id="drainTotalShow" style="font-size:20px;">-0.00%</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 掛かり -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">05</span>
+      <h2 class="sec-title">掛かり(Rushed)</h2>
+    </div>
+    <p class="sec-sub">発生確率 = (6.5 / log10(0.1×賢さ+1))² % ・ チェックを入れると、この確率に関わらず100%発生するものとして計算します(発生すると中盤付近でHP消費が指定秒数×1.6倍になります)</p>
+    <div class="stat-strip">
+      <div>
+        <div class="k">発生確率(参考表示)</div>
+        <div class="v" id="rushedChanceShow" style="font-size:20px;">0%</div>
+      </div>
+      <div>
+        <div class="k">継続秒数</div>
+        <select id="rushedDuration" style="font-family:'JetBrains Mono',monospace; font-size:16px; padding:6px 10px; border:1.3px solid var(--border); border-radius:6px;">
+          <option value="3">3秒</option>
+          <option value="6" selected>6秒</option>
+          <option value="9">9秒</option>
+          <option value="12">12秒</option>
+        </select>
+        <p class="hint">3秒ごとの解除判定(55%)のタイミングに対応</p>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-left:auto;font-weight:700;color:var(--text);font-size:13px;">
+        <input type="checkbox" id="rushedToggle" style="width:18px;height:18px;accent-color:var(--gold);">
+        掛かりが発生する前提で計算する
+      </label>
+    </div>
+  </section>
+
+  <!-- 6. 位置取り争い -->
+  <section id="spotStruggleSection">
+    <div class="sec-head">
+      <span class="sec-num">06</span>
+      <h2 class="sec-title">位置取り争い(先行争い)</h2>
+    </div>
+    <p class="sec-sub" id="spotStruggleNote">逃げ・大逃げの場合のみ対象。序盤にHP消費が逃げ×1.4倍／大逃げ×3.5倍になります(掛かり同時発生時はそれぞれ×3.6／×7.7倍)</p>
+    <div id="spotStruggleError" style="display:none; background:var(--red-pale); border:1px solid var(--red); border-radius:8px; padding:12px 16px; color:var(--red); font-weight:700; font-size:13px; margin-bottom:8px;"></div>
+    <div class="stat-strip" id="spotStruggleStrip">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--text);font-size:13px; width:100%; margin-bottom:4px;">
+        <input type="checkbox" id="spotStruggleToggle" checked style="width:18px;height:18px;accent-color:var(--gold);">
+        位置取り争いが発生する前提で計算する
+      </label>
+      <div>
+        <div class="k">継続時間</div>
+        <div class="v" id="spotDurationShow" style="font-size:20px;">0.0s</div>
+      </div>
+      <div>
+        <div class="k">目標速度上昇</div>
+        <div class="v" id="spotSpeedShow" style="font-size:20px;">0.00 m/s</div>
+      </div>
+      <div>
+        <div class="k">追加消費HP(目安)</div>
+        <div class="v" id="spotConsumeShow" style="font-size:20px;">0 pt</div>
+      </div>
+    </div>
+
+    <div id="positionRushedBox" style="display:none; margin-top:14px; background:#fff3e0; border:1px solid var(--gold); border-radius:8px; padding:14px 18px;">
+      <p style="margin:0 0 8px; font-weight:700; color:var(--gold);">⚡ 位置取りかかり発生</p>
+      <p class="hint" style="margin-bottom:8px;">掛かりと位置取り争いが同時にチェックされているため、重複区間(短い方の秒数)は結合倍率(逃げ×3.6／大逃げ×7.7)で計算します。</p>
+      <div class="stat-strip" style="margin-top:0;">
+        <div>
+          <div class="k">重複秒数</div>
+          <div class="v" id="positionRushedOverlapShow" style="font-size:20px;">0.0s</div>
+        </div>
+        <div>
+          <div class="k">追加消費HP(目安)</div>
+          <div class="v" id="positionRushedConsumeShow" style="font-size:20px;">0 pt</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. 下り坂モードによる軽減 -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">07</span>
+      <h2 class="sec-title">下り坂モードによる軽減(自動計算)</h2>
+    </div>
+    <p class="sec-sub">選択中のコースに下り坂区間があれば、賢さに応じた発動期待値を使ってHP消費を自動的に軽減します(消費倍率×0.4)</p>
+    <div class="stat-strip">
+      <div>
+        <div class="k">下り坂区間</div>
+        <div class="v" id="downhillSegShow" style="font-size:18px;">なし</div>
+      </div>
+      <div>
+        <div class="k">軽減されるHP(目安)</div>
+        <div class="v" id="downhillSaveShow" style="font-size:20px;">0 pt</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. その他の位置取りイベント -->
+  <section id="miscEventsSection">
+    <div class="sec-head">
+      <span class="sec-num">08</span>
+      <h2 class="sec-title">位置取り調整・リード確保・追い比べ・脚色十分・スタミナ勝負</h2>
+    </div>
+    <p class="sec-sub">追加の消費・加速イベントです。ゲーム内ではAIが自動的に試みる行動のため、常に発生を試みる前提で計算し、HPが足りない場合は90%の確率で持久力温存が発動して抑制されます(残り10%は足りないまま強行し、バテのリスクが上がります)。</p>
+
+    <div id="repositionBlock" style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border);">
+      <p class="hint" style="font-weight:700; color:var(--green-dark); margin-bottom:6px;">位置取り調整(逃げ・大逃げ以外が対象)</p>
+      <p class="hint">中盤の一部区間(目安：全体の45〜63%地点)で、2秒ごとに約80%の確率で発動(発動2秒＋クールタイム2秒)を試みます。消費量は「基準消費(概算入力)×脚質係数×距離係数」で計算します(脚質・距離係数は確認済み、基準消費のみ概算値です)。</p>
+      <div class="grid" style="margin-top:8px;">
+        <div class="field">
+          <label for="repositionCost">基準消費(pt、概算)</label>
+          <input type="number" id="repositionCost" value="25" step="1">
+        </div>
+      </div>
+      <div class="stat-strip" style="margin-top:10px;">
+        <div><div class="k">想定発動回数</div><div class="v" id="repositionCountShow" style="font-size:18px;">0回</div></div>
+        <div><div class="k">追加消費HP(目安)</div><div class="v" id="repositionConsumeShow" style="font-size:18px;">0 pt</div></div>
+        <div><div class="k">適用係数</div><div class="v" id="repositionCoefShow" style="font-size:14px;">-</div></div>
+      </div>
+    </div>
+
+    <div id="secureLeadBlock" style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border);">
+      <p class="hint" style="font-weight:700; color:var(--green-dark); margin-bottom:6px;">リード確保(追込以外が対象)</p>
+      <p class="hint">中盤の中盤〜後半にかけて発動を試みる想定回数のうち、30%の確率で実際に発動すると仮定して計算します。消費量は「基準消費(概算入力)×発生率30%×脚質係数×距離係数」で計算します(発生率・脚質・距離係数は確認済み、基準消費・想定発動回数のみ概算値です)。</p>
+      <div class="grid" style="margin-top:8px;">
+        <div class="field">
+          <label for="secureLeadCost">基準消費(pt、概算)</label>
+          <input type="number" id="secureLeadCost" value="20" step="1">
+        </div>
+        <div class="field">
+          <label for="secureLeadCount">想定発動回数(試行回数)</label>
+          <input type="number" id="secureLeadCount" value="1" min="0" step="1">
+        </div>
+      </div>
+      <div class="stat-strip" style="margin-top:10px;">
+        <div><div class="k">期待発動回数</div><div class="v" id="secureLeadCountShow" style="font-size:18px;">0回</div></div>
+        <div><div class="k">追加消費HP(目安)</div><div class="v" id="secureLeadConsumeShow" style="font-size:18px;">0 pt</div></div>
+        <div><div class="k">適用係数</div><div class="v" id="secureLeadCoefShow" style="font-size:14px;">-</div></div>
+      </div>
+    </div>
+
+    <div id="duelBlock" style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border);">
+      <p class="hint" style="font-weight:700; color:var(--green-dark); margin-bottom:6px;">追い比べ(終盤〜ラストスパートで発生)</p>
+      <p class="hint">目標速度 += (200×根性)^0.708×0.0001 [m/s]。HP15%未満では発生せず、HP5%未満で強制終了します(この判定は自動で反映されます)。相手依存の要素が強いメカニクスのため、発生させるかどうかは任意で選べます。</p>
+      <div class="grid" style="margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--text-dim);font-size:13px;">
+          <input type="checkbox" id="duelToggle" style="width:18px;height:18px;accent-color:var(--gold);">
+          発生する前提で計算する
+        </label>
+        <div class="field">
+          <label for="duelDuration">想定継続秒数</label>
+          <input type="number" id="duelDuration" value="5" step="0.5">
+        </div>
+        <div class="field">
+          <label for="duelPhase">発生タイミング</label>
+          <select id="duelPhase">
+            <option value="late" selected>終盤</option>
+            <option value="spurt">ラストスパート</option>
+          </select>
+        </div>
+      </div>
+      <div class="stat-strip" style="margin-top:10px;">
+        <div><div class="k">目標速度上昇</div><div class="v" id="duelSpeedShow" style="font-size:18px;">0.00 m/s</div></div>
+        <div><div class="k">追加消費HP(目安)</div><div class="v" id="duelConsumeShow" style="font-size:18px;">0 pt</div></div>
+      </div>
+    </div>
+
+    <div id="conservePowerBlock" style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border);">
+      <p class="hint" style="font-weight:700; color:var(--green-dark); margin-bottom:6px;">脚色十分(ラストスパート開始直後に発動)</p>
+      <p class="hint">ラストスパート開始から「3秒×距離係数」の間、加速度に脚質・距離帯別の係数がかかります(係数は確認済み)。大逃げ・逃げは常に1.0倍(影響なし)です。</p>
+      <div class="grid" style="margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--text-dim);font-size:13px;">
+          <input type="checkbox" id="conservePowerToggle" checked style="width:18px;height:18px;accent-color:var(--gold);">
+          発動する前提で計算する
+        </label>
+      </div>
+      <div class="stat-strip" style="margin-top:10px;">
+        <div><div class="k">距離帯</div><div class="v" id="conservePowerCategoryShow" style="font-size:18px;">-</div></div>
+        <div><div class="k">持続時間</div><div class="v" id="conservePowerDurationShow" style="font-size:18px;">0.00s</div></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="hint" style="font-weight:700; color:var(--green-dark); margin-bottom:6px;">スタミナ勝負</p>
+      <p class="hint">スタミナ実効値1200超・距離2101m以上で、ラストスパート速度に「√(スタミナ−1200)×0.0085×距離係数×乱数係数」ぶんが加算されます(スタミナ勝負/Stamina Limit Break)。乱数は3段階のテーブル抽選のため、期待値を使用しています。</p>
+      <div class="stat-strip" style="margin-top:10px;">
+        <div><div class="k">距離条件</div><div class="v" id="staminaBattleShow" style="font-size:18px;">-</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. 詳細設定 -->
+  <section>
+    <details>
+      <summary>詳細設定(計算式のパラメータを調整する)</summary>
+      <div class="adv-grid">
+        <div class="field">
+          <label for="gutsFormulaA">ガッツ補正 200/√(600×根性) の係数</label>
+          <input type="number" id="gutsFormulaA" value="200" step="1">
+        </div>
+        <div class="field">
+          <label for="hpFormulaK">HP消費式の係数(20×(...)²/144のうち20)</label>
+          <input type="number" id="hpFormulaK" value="20" step="0.1">
+        </div>
+        <div class="field">
+          <label for="hpFormulaDiv">HP消費式の除数(÷144)</label>
+          <input type="number" id="hpFormulaDiv" value="144" step="1">
+        </div>
+        <div class="field">
+          <label for="rushedMult">掛かり中の消費倍率</label>
+          <input type="number" id="rushedMult" value="1.6" step="0.05">
+        </div>
+        <div class="field">
+          <label for="downhillMult">下り坂モード中の消費倍率</label>
+          <input type="number" id="downhillMult" value="0.4" step="0.05">
+        </div>
+      </div>
+      <p class="hint" style="margin-top:8px;">
+        ペースダウン(×0.6)など、その他の動的な状態変化はこの簡易シミュレーションには含まれていません。
+      </p>
+    </details>
+  </section>
+
+  <!-- 10. 結果 -->
+  <section style="background:transparent; border:none; box-shadow:none; padding:0;">
+    <div class="sec-head" style="border-bottom-color:transparent; margin-bottom:10px;">
+      <span class="sec-num">10</span>
+      <h2 class="sec-title">判定結果</h2>
+    </div>
+    <div class="board ok" id="resultBoard">
+      <div class="label" id="resultLabel">RESULT</div>
+      <div class="verdict" id="resultVerdict">-</div>
+      <div class="stat-strip" id="resultMetrics" style="background:rgba(255,255,255,0.6); margin-top:14px;"></div>
+      <div class="sub" id="resultSub"></div>
+      <div class="rail-track" id="railTrack"></div>
+    </div>
+
+    <p class="hint" id="scenarioNote" style="margin-top:10px;"></p>
+    <table style="margin-top:6px;">
+      <thead>
+        <tr><th>フェーズ</th><th>平均速度(m/s)</th><th>秒数</th><th>回復</th><th>消費</th><th>残りHP</th></tr>
+      </thead>
+      <tbody id="phaseTable"></tbody>
+    </table>
+  </section>
+
+  <footer>
+    基準速度=(20−(距離−2000)/1000)×フェーズ補正、HP消費=20×(現在速度−基準速度+12)²/144×馬場倍率×(終盤以降はガッツ補正)、
+    最大HP=距離+スタミナ×0.8×脚質係数、加速度=(上り坂以外0.0006/上り坂0.0004)×√(500×パワー)×フェーズ補正、
+    という数値を初期値としています。<br>
+    レース基本区間は序盤(0〜1/6)・中盤50%未満(1/6〜1/2)・中盤50%以降(1/2〜4/6)・終盤(4/6〜5/6)・ラストスパート(5/6〜ゴール)の5区分ですが、
+    HP消費自体は1秒ごとの加減速シミュレーションで実際の現在速度から計算しています。掛かりや位置取りなどのイベントは各フェーズへの一括加算という簡易処理です。ゲーム公式の保証値ではありません。
+  </footer>
+</div>
+
+<script>
+let recoveryId = 0;
+let drainId = 0;
+
+// ---- course distance DB (venue+course -> distance) ----
+const courseDB = {};
+const COURSE_THRESHOLDS = {
+  'サンタアニタパーク ダート1200m': ["speed", "power"],
+  'サンタアニタパーク ダート1400m': ["speed"],
+  'サンタアニタパーク ダート1600m': ["power", "wisdom"],
+  'サンタアニタパーク ダート1800m': ["power"],
+  'サンタアニタパーク ダート2000m': ["power", "wisdom"],
+  'サンタアニタパーク 芝1000m': ["speed", "power"],
+  'サンタアニタパーク 芝1600m': ["power", "wisdom"],
+  'サンタアニタパーク 芝2000m': ["power", "wisdom"],
+  'サンタアニタパーク 芝2000m(?)': ["power", "wisdom"],
+  'サンタアニタパーク 芝2400m': ["stamina", "guts"],
+  'デルマー ダート1200m': ["speed", "power"],
+  'デルマー ダート1400m': ["speed"],
+  'デルマー ダート1600m': ["power", "wisdom"],
+  'デルマー ダート1800m': ["power"],
+  'デルマー ダート2000m': ["power", "wisdom"],
+  'デルマー 芝1000m': ["speed", "power"],
+  'デルマー 芝1600m': ["power", "wisdom"],
+  'デルマー 芝2200m': ["power", "wisdom"],
+  'デルマー 芝2400m': ["stamina", "guts"],
+  'ロンシャン 芝2400m': ["stamina", "power"],
+  '中京 ダート1800m': ["stamina"],
+  '中京 芝1600m': ["speed"],
+  '中京 芝2200m': ["stamina"],
+  '中山 ダート1200m': ["power"],
+  '中山 ダート1800m': ["power"],
+  '中山 ダート2400m': ["stamina"],
+  '中山 ダート2500m': ["stamina", "guts"],
+  '中山 芝1200m(外)': ["power"],
+  '中山 芝1600m(外)': ["power"],
+  '中山 芝1800m(内)': ["power"],
+  '中山 芝2000m(内)': ["speed"],
+  '中山 芝2200m(外)': ["stamina", "guts"],
+  '中山 芝2500m': ["stamina", "guts"],
+  '中山 芝3600m': ["stamina"],
+  '京都 芝1600m(内)': ["speed"],
+  '京都 芝1600m(外)': ["speed"],
+  '京都 芝2000m(内)': ["power"],
+  '京都 芝2200m(外)': ["speed"],
+  '京都 芝2400m(外)': ["power"],
+  '京都 芝3000m(外)': ["power", "wisdom"],
+  '函館 ダート2400m': ["stamina"],
+  '函館 芝1800m': ["power"],
+  '函館 芝2000m': ["speed"],
+  '函館 芝2600m': ["stamina"],
+  '大井 ダート1200m': ["guts", "wisdom"],
+  '大井 ダート1800m': ["power"],
+  '大井 ダート2000m': ["stamina"],
+  '小倉 ダート1000m': ["speed"],
+  '小倉 芝1200m': ["speed"],
+  '小倉 芝2000m': ["power"],
+  '小倉 芝2600m': ["stamina"],
+  '川崎 ダート1400m': ["wisdom"],
+  '川崎 ダート1600m': ["wisdom"],
+  '川崎 ダート2100m': ["stamina", "wisdom"],
+  '新潟 ダート1800m': ["wisdom"],
+  '新潟 芝1000m': ["power"],
+  '新潟 芝1800m(外)': ["wisdom"],
+  '新潟 芝2000m(内)': ["stamina", "power"],
+  '新潟 芝2000m(外)': ["stamina", "power"],
+  '新潟 芝2200m(内)': ["speed"],
+  '札幌 ダート1700m': ["speed"],
+  '札幌 芝2000m': ["power"],
+  '札幌 芝2600m': ["stamina"],
+  '東京 ダート1300m': ["speed"],
+  '東京 ダート1400m': ["stamina"],
+  '東京 ダート1600m': ["speed", "stamina"],
+  '東京 ダート2400m': ["stamina"],
+  '東京 芝1400m': ["stamina"],
+  '東京 芝1600m': ["speed", "stamina"],
+  '東京 芝1800m': ["speed"],
+  '東京 芝2300m': ["power"],
+  '東京 芝2400m': ["stamina"],
+  '東京 芝2500m': ["stamina"],
+  '盛岡 ダート1200m': ["stamina"],
+  '盛岡 ダート1600m': ["stamina", "wisdom"],
+  '盛岡 ダート1800m': ["stamina", "wisdom"],
+  '盛岡 ダート2000m': ["stamina"],
+  '福島 ダート1700m': ["power"],
+  '福島 ダート2400m': ["stamina"],
+  '福島 芝1800m': ["stamina"],
+  '福島 芝2000m': ["stamina"],
+  '船橋 ダート1000m': ["speed"],
+  '船橋 ダート2400m': ["stamina"],
+  '阪神 ダート1800m': ["power"],
+  '阪神 ダート2000m': ["stamina", "power"],
+  '阪神 芝1600m(外)': ["power"],
+  '阪神 芝1800m(外)': ["power"],
+  '阪神 芝2000m(内)': ["stamina", "power"],
+  '阪神 芝2200m(内)': ["speed"],
+  '阪神 芝2400m(外)': ["power"],
+  '阪神 芝3000m(内)': ["power"],
+};
+function seedCourseDB(){
+  courseDB['札幌 芝1200m']={distance:1200,segments:[]};
+  courseDB['札幌 芝1500m']={distance:1500,segments:[]};
+  courseDB['札幌 芝1800m']={distance:1800,segments:[]};
+  courseDB['札幌 芝2000m']={distance:2000,segments:[]};
+  courseDB['札幌 芝2600m']={distance:2600,segments:[]};
+  courseDB['札幌 ダート1000m']={distance:1000,segments:[]};
+  courseDB['札幌 ダート1700m']={distance:1700,segments:[]};
+  courseDB['札幌 ダート2400m']={distance:2400,segments:[]};
+  courseDB['函館 芝1000m']={distance:1000,segments:[{type:'up',start:0,end:555,grad:1}]};
+  courseDB['函館 芝1200m']={distance:1200,segments:[{type:'up',start:0,end:755,grad:1}]};
+  courseDB['函館 芝1800m']={distance:1800,segments:[{type:'up',start:665,end:1385,grad:1},{type:'down',start:220,end:420,grad:1}]};
+  courseDB['函館 芝2000m']={distance:2000,segments:[{type:'up',start:865,end:1585,grad:1},{type:'down',start:420,end:620,grad:1}]};
+  courseDB['函館 芝2600m']={distance:2600,segments:[{type:'up',start:0,end:495,grad:1},{type:'up',start:1425,end:2145,grad:1},{type:'down',start:970,end:1170,grad:1}]};
+  courseDB['函館 ダート1000m']={distance:1000,segments:[]};
+  courseDB['函館 ダート1700m']={distance:1700,segments:[{type:'up',start:615,end:1285,grad:1},{type:'down',start:275,end:615,grad:1}]};
+  courseDB['函館 ダート2400m']={distance:2400,segments:[]};
+  courseDB['新潟 芝1000m']={distance:1000,segments:[{type:'up',start:0,end:240,grad:1},{type:'down',start:240,end:300,grad:1}]};
+  courseDB['新潟 芝1200m(内)']={distance:1200,segments:[]};
+  courseDB['新潟 芝1400m(内)']={distance:1400,segments:[]};
+  courseDB['新潟 芝1600m(外)']={distance:1600,segments:[{type:'up',start:250,end:600,grad:1},{type:'down',start:600,end:900,grad:1.5}]};
+  courseDB['新潟 芝1800m(外)']={distance:1800,segments:[{type:'up',start:450,end:800,grad:1},{type:'down',start:800,end:1100,grad:1.5}]};
+  courseDB['新潟 芝2000m(内)']={distance:2000,segments:[]};
+  courseDB['新潟 芝2000m(外)']={distance:2000,segments:[{type:'up',start:650,end:1000,grad:1},{type:'down',start:1000,end:1300,grad:1.5}]};
+  courseDB['新潟 芝2200m(内)']={distance:2200,segments:[]};
+  courseDB['新潟 芝2400m(内)']={distance:2400,segments:[]};
+  courseDB['新潟 ダート1200m']={distance:1200,segments:[]};
+  courseDB['新潟 ダート1800m']={distance:1800,segments:[]};
+  courseDB['新潟 ダート2500m']={distance:2500,segments:[]};
+  courseDB['福島 芝1200m']={distance:1200,segments:[{type:'up',start:180,end:280,grad:1.5}]};
+  courseDB['福島 芝1800m']={distance:1800,segments:[{type:'up',start:780,end:880,grad:1.5}]};
+  courseDB['福島 芝2000m']={distance:2000,segments:[{type:'up',start:980,end:1080,grad:1.5}]};
+  courseDB['福島 芝2600m']={distance:2600,segments:[{type:'up',start:0,end:80,grad:1.5},{type:'up',start:1580,end:1680,grad:1.5}]};
+  courseDB['福島 ダート1150m']={distance:1150,segments:[]};
+  courseDB['福島 ダート1700m']={distance:1700,segments:[{type:'down',start:285,end:605,grad:1}]};
+  courseDB['福島 ダート2400m']={distance:2400,segments:[]};
+  courseDB['中山 芝1200m(外)']={distance:1200,segments:[{type:'up',start:1025,end:1135,grad:2},{type:'down',start:0,end:200,grad:1.5}]};
+  courseDB['中山 芝1600m(外)']={distance:1600,segments:[{type:'up',start:1425,end:1535,grad:2},{type:'down',start:300,end:600,grad:1.5}]};
+  courseDB['中山 芝1800m(内)']={distance:1800,segments:[{type:'up',start:1,end:36,grad:2},{type:'up',start:125,end:325,grad:1.5},{type:'up',start:1625,end:1735,grad:2},{type:'down',start:425,end:825,grad:1.5}]};
+  courseDB['中山 芝2000m(内)']={distance:2000,segments:[{type:'up',start:125,end:235,grad:2},{type:'up',start:325,end:525,grad:1.5},{type:'up',start:1825,end:1935,grad:2},{type:'down',start:625,end:1025,grad:1.5}]};
+  courseDB['中山 芝2200m(外)']={distance:2200,segments:[{type:'up',start:153,end:263,grad:2},{type:'up',start:353,end:553,grad:1.5},{type:'up',start:2025,end:2135,grad:2},{type:'down',start:900,end:1200,grad:1.5}]};
+  courseDB['中山 芝2500m']={distance:2500,segments:[{type:'up',start:621,end:731,grad:2},{type:'up',start:825,end:1025,grad:1.5},{type:'up',start:2325,end:2435,grad:2},{type:'down',start:1125,end:1525,grad:1.5}]};
+  courseDB['中山 芝3600m']={distance:3600,segments:[{type:'up',start:40,end:150,grad:2},{type:'up',start:240,end:440,grad:1.5},{type:'up',start:1740,end:1850,grad:2},{type:'up',start:1925,end:2125,grad:1.5},{type:'up',start:3425,end:3535,grad:2},{type:'down',start:540,end:940,grad:1.5},{type:'down',start:2225,end:2625,grad:1.5}]};
+  courseDB['中山 ダート1200m']={distance:1200,segments:[{type:'up',start:1000,end:1175,grad:1.5},{type:'down',start:175,end:350,grad:1.5}]};
+  courseDB['中山 ダート1800m']={distance:1800,segments:[{type:'up',start:100,end:275,grad:1.5},{type:'up',start:350,end:525,grad:1},{type:'up',start:1600,end:1775,grad:1.5},{type:'down',start:775,end:950,grad:1.5}]};
+  courseDB['中山 ダート2400m']={distance:2400,segments:[]};
+  courseDB['中山 ダート2500m']={distance:2500,segments:[]};
+  courseDB['東京 芝1400m']={distance:1400,segments:[{type:'up',start:125,end:200,grad:2},{type:'up',start:950,end:1100,grad:1.5},{type:'down',start:250,end:500,grad:1.5}]};
+  courseDB['東京 芝1600m']={distance:1600,segments:[{type:'up',start:325,end:400,grad:2},{type:'up',start:1150,end:1300,grad:1.5},{type:'down',start:450,end:700,grad:1.5}]};
+  courseDB['東京 芝1800m']={distance:1800,segments:[{type:'up',start:525,end:600,grad:2},{type:'up',start:1350,end:1500,grad:1.5},{type:'down',start:650,end:900,grad:1.5}]};
+  courseDB['東京 芝2000m']={distance:2000,segments:[{type:'up',start:725,end:800,grad:2},{type:'up',start:1550,end:1700,grad:1.5},{type:'down',start:850,end:1100,grad:1.5}]};
+  courseDB['東京 芝2300m']={distance:2300,segments:[{type:'up',start:1025,end:1100,grad:2},{type:'up',start:1850,end:2000,grad:1.5},{type:'down',start:1150,end:1400,grad:1.5}]};
+  courseDB['東京 芝2400m']={distance:2400,segments:[{type:'up',start:0,end:40,grad:1.5},{type:'up',start:1125,end:1200,grad:2},{type:'up',start:1950,end:2100,grad:1.5},{type:'down',start:1250,end:1500,grad:1.5}]};
+  courseDB['東京 芝2500m']={distance:2500,segments:[{type:'up',start:0,end:140,grad:1.5},{type:'up',start:1225,end:1300,grad:2},{type:'up',start:2050,end:2200,grad:1.5},{type:'down',start:1350,end:1600,grad:1.5}]};
+  courseDB['東京 芝3400m']={distance:3400,segments:[{type:'up',start:67,end:142,grad:2},{type:'up',start:892,end:1042,grad:1.5},{type:'up',start:2125,end:2200,grad:2},{type:'up',start:2950,end:3100,grad:1.5},{type:'down',start:192,end:442,grad:1.5},{type:'down',start:2250,end:2500,grad:1.5}]};
+  courseDB['東京 ダート1300m']={distance:1300,segments:[{type:'up',start:800,end:1050,grad:1.5},{type:'down',start:275,end:475,grad:1}]};
+  courseDB['東京 ダート1400m']={distance:1400,segments:[{type:'up',start:900,end:1150,grad:1.5},{type:'down',start:375,end:575,grad:1}]};
+  courseDB['東京 ダート1600m']={distance:1600,segments:[{type:'up',start:1100,end:1350,grad:1.5},{type:'down',start:575,end:775,grad:1}]};
+  courseDB['東京 ダート2100m']={distance:2100,segments:[{type:'up',start:1600,end:1850,grad:1.5},{type:'down',start:1075,end:1275,grad:1}]};
+  courseDB['東京 ダート2400m']={distance:2400,segments:[]};
+  courseDB['中京 芝1200m']={distance:1200,segments:[{type:'up',start:875,end:975,grad:2},{type:'down',start:100,end:875,grad:1}]};
+  courseDB['中京 芝1400m']={distance:1400,segments:[{type:'up',start:1075,end:1175,grad:2},{type:'down',start:300,end:1075,grad:1}]};
+  courseDB['中京 芝1600m']={distance:1600,segments:[{type:'up',start:1275,end:1375,grad:2},{type:'down',start:500,end:1275,grad:1}]};
+  courseDB['中京 芝2000m']={distance:2000,segments:[{type:'up',start:0,end:50,grad:2},{type:'up',start:1675,end:1775,grad:2},{type:'down',start:900,end:1675,grad:1}]};
+  courseDB['中京 芝2200m']={distance:2200,segments:[{type:'up',start:150,end:250,grad:2},{type:'up',start:1875,end:1975,grad:2},{type:'down',start:0,end:150,grad:1},{type:'down',start:1100,end:1875,grad:1}]};
+  courseDB['中京 ダート1200m']={distance:1200,segments:[]};
+  courseDB['中京 ダート1400m']={distance:1400,segments:[{type:'up',start:1025,end:1175,grad:1.5},{type:'down',start:425,end:1025,grad:1.5}]};
+  courseDB['中京 ダート1800m']={distance:1800,segments:[{type:'up',start:0,end:50,grad:1.5},{type:'up',start:1425,end:1575,grad:1.5},{type:'down',start:825,end:1425,grad:1.5}]};
+  courseDB['中京 ダート1900m']={distance:1900,segments:[]};
+  courseDB['京都 芝1200m(内)']={distance:1200,segments:[{type:'up',start:120,end:295,grad:1.5},{type:'down',start:420,end:570,grad:1.5}]};
+  courseDB['京都 芝1400m(内)']={distance:1400,segments:[{type:'up',start:320,end:495,grad:1.5},{type:'down',start:620,end:770,grad:1.5}]};
+  courseDB['京都 芝1400m(外)']={distance:1400,segments:[{type:'up',start:250,end:350,grad:2},{type:'up',start:350,end:575,grad:1},{type:'down',start:575,end:725,grad:2}]};
+  courseDB['京都 芝1600m(内)']={distance:1600,segments:[{type:'up',start:520,end:695,grad:1.5},{type:'down',start:820,end:970,grad:1.5}]};
+  courseDB['京都 芝1600m(外)']={distance:1600,segments:[{type:'up',start:450,end:550,grad:2},{type:'up',start:550,end:775,grad:1},{type:'down',start:775,end:925,grad:2}]};
+  courseDB['京都 芝1800m(外)']={distance:1800,segments:[{type:'up',start:650,end:750,grad:2},{type:'up',start:750,end:975,grad:1},{type:'down',start:975,end:1125,grad:2}]};
+  courseDB['京都 芝2000m(内)']={distance:2000,segments:[{type:'up',start:970,end:1145,grad:1.5},{type:'down',start:1270,end:1420,grad:1.5}]};
+  courseDB['京都 芝2200m(外)']={distance:2200,segments:[{type:'up',start:1050,end:1150,grad:2},{type:'up',start:1150,end:1375,grad:1},{type:'down',start:1375,end:1525,grad:2}]};
+  courseDB['京都 芝2400m(外)']={distance:2400,segments:[{type:'up',start:1250,end:1350,grad:2},{type:'up',start:1350,end:1575,grad:1},{type:'down',start:1575,end:1725,grad:2}]};
+  courseDB['京都 芝3000m(外)']={distance:3000,segments:[{type:'up',start:11,end:111,grad:2},{type:'up',start:111,end:336,grad:1},{type:'up',start:1850,end:1950,grad:2},{type:'up',start:1950,end:2175,grad:1},{type:'down',start:336,end:486,grad:2},{type:'down',start:2175,end:2325,grad:2}]};
+  courseDB['京都 芝3200m(外)']={distance:3200,segments:[{type:'up',start:208,end:308,grad:2},{type:'up',start:308,end:533,grad:1},{type:'up',start:2050,end:2150,grad:2},{type:'up',start:2150,end:2375,grad:1},{type:'down',start:533,end:683,grad:2},{type:'down',start:2375,end:2525,grad:2}]};
+  courseDB['京都 ダート1200m']={distance:1200,segments:[{type:'up',start:175,end:375,grad:1.5},{type:'down',start:475,end:675,grad:1.5}]};
+  courseDB['京都 ダート1400m']={distance:1400,segments:[{type:'up',start:375,end:575,grad:1.5},{type:'down',start:675,end:875,grad:1.5}]};
+  courseDB['京都 ダート1800m']={distance:1800,segments:[{type:'up',start:775,end:975,grad:1.5},{type:'down',start:1075,end:1275,grad:1.5}]};
+  courseDB['京都 ダート1900m']={distance:1900,segments:[{type:'up',start:875,end:1075,grad:1.5},{type:'down',start:1175,end:1375,grad:1.5}]};
+  courseDB['阪神 芝1200m(内)']={distance:1200,segments:[{type:'up',start:1000,end:1125,grad:2},{type:'down',start:400,end:995,grad:1}]};
+  courseDB['阪神 芝1400m(内)']={distance:1400,segments:[{type:'up',start:1200,end:1325,grad:2},{type:'down',start:600,end:1195,grad:1}]};
+  courseDB['阪神 芝1600m(外)']={distance:1600,segments:[{type:'up',start:1405,end:1525,grad:2},{type:'down',start:950,end:1350,grad:1}]};
+  courseDB['阪神 芝1800m(外)']={distance:1800,segments:[{type:'up',start:1605,end:1725,grad:2},{type:'down',start:1150,end:1550,grad:1}]};
+  courseDB['阪神 芝2000m(内)']={distance:2000,segments:[{type:'up',start:95,end:220,grad:2},{type:'up',start:1800,end:1925,grad:2},{type:'down',start:0,end:90,grad:1},{type:'down',start:1200,end:1795,grad:1}]};
+  courseDB['阪神 芝2200m(内)']={distance:2200,segments:[{type:'up',start:295,end:420,grad:2},{type:'up',start:2000,end:2125,grad:2},{type:'down',start:0,end:290,grad:1},{type:'down',start:1400,end:1995,grad:1}]};
+  courseDB['阪神 芝2400m(外)']={distance:2400,segments:[{type:'up',start:170,end:290,grad:2},{type:'up',start:2205,end:2325,grad:2},{type:'down',start:0,end:115,grad:1},{type:'down',start:1750,end:2150,grad:1}]};
+  courseDB['阪神 芝2600m(外)']={distance:2600,segments:[{type:'up',start:370,end:490,grad:2},{type:'up',start:2405,end:2525,grad:2},{type:'down',start:0,end:315,grad:1},{type:'down',start:1950,end:2350,grad:1}]};
+  courseDB['阪神 芝3000m(内)']={distance:3000,segments:[{type:'up',start:1095,end:1220,grad:2},{type:'up',start:2800,end:2925,grad:2},{type:'down',start:495,end:1090,grad:1},{type:'down',start:2200,end:2795,grad:1}]};
+  courseDB['阪神 芝3200m(外→内)']={distance:3200,segments:[{type:'up',start:1325,end:1445,grad:2},{type:'up',start:3000,end:3125,grad:2},{type:'down',start:870,end:1270,grad:1},{type:'down',start:2400,end:2995,grad:1}]};
+  courseDB['阪神 ダート1200m']={distance:1200,segments:[]};
+  courseDB['阪神 ダート1400m']={distance:1400,segments:[{type:'up',start:1200,end:1325,grad:1.5},{type:'down',start:400,end:1200,grad:1}]};
+  courseDB['阪神 ダート1800m']={distance:1800,segments:[{type:'up',start:75,end:200,grad:1.5},{type:'up',start:1600,end:1725,grad:1.5},{type:'down',start:800,end:1600,grad:1}]};
+  courseDB['阪神 ダート2000m']={distance:2000,segments:[{type:'up',start:275,end:400,grad:1.5},{type:'up',start:1800,end:1925,grad:1.5},{type:'down',start:0,end:275,grad:1},{type:'down',start:1000,end:1800,grad:1}]};
+  courseDB['小倉 芝1200m']={distance:1200,segments:[{type:'down',start:0,end:60,grad:1.5}]};
+  courseDB['小倉 芝1800m']={distance:1800,segments:[{type:'up',start:280,end:535,grad:1.5}]};
+  courseDB['小倉 芝2000m']={distance:2000,segments:[{type:'up',start:480,end:735,grad:1.5}]};
+  courseDB['小倉 芝2600m']={distance:2600,segments:[{type:'up',start:1100,end:1355,grad:1.5}]};
+  courseDB['小倉 ダート1000m']={distance:1000,segments:[]};
+  courseDB['小倉 ダート1700m']={distance:1700,segments:[{type:'up',start:370,end:520,grad:1.5}]};
+  courseDB['小倉 ダート2400m']={distance:2400,segments:[]};
+  courseDB['大井 ダート1200m']={distance:1200,segments:[]};
+  courseDB['大井 ダート1800m']={distance:1800,segments:[]};
+  courseDB['大井 ダート2000m']={distance:2000,segments:[]};
+  courseDB['川崎 ダート1400m']={distance:1400,segments:[]};
+  courseDB['川崎 ダート1600m']={distance:1600,segments:[]};
+  courseDB['川崎 ダート2100m']={distance:2100,segments:[]};
+  courseDB['船橋 ダート1000m']={distance:1000,segments:[]};
+  courseDB['船橋 ダート1600m']={distance:1600,segments:[]};
+  courseDB['船橋 ダート1800m']={distance:1800,segments:[]};
+  courseDB['船橋 ダート2400m']={distance:2400,segments:[]};
+  courseDB['盛岡 ダート1200m']={distance:1200,segments:[{type:'up',start:100,end:475,grad:1},{type:'up',start:975,end:1150,grad:1},{type:'down',start:475,end:925,grad:1.5}]};
+  courseDB['盛岡 ダート1600m']={distance:1600,segments:[{type:'up',start:500,end:875,grad:1},{type:'up',start:1375,end:1550,grad:1},{type:'down',start:875,end:1325,grad:1.5}]};
+  courseDB['盛岡 ダート1800m']={distance:1800,segments:[{type:'up',start:0,end:150,grad:1},{type:'up',start:1575,end:1750,grad:1},{type:'down',start:700,end:1150,grad:1.5}]};
+  courseDB['盛岡 ダート2000m']={distance:2000,segments:[{type:'up',start:175,end:350,grad:1},{type:'up',start:900,end:1275,grad:1},{type:'up',start:1775,end:1950,grad:1},{type:'down',start:1275,end:1725,grad:1.5}]};
+  courseDB['ロンシャン 芝2400m']={distance:2400,segments:[{type:'up',start:400,end:1000,grad:2},{type:'down',start:1017,end:1400,grad:2},{type:'down',start:1400,end:1617,grad:1.5}]};
+  courseDB['サンタアニタパーク 芝2000m(?)']={distance:2000,segments:[{type:'down',start:0,end:150,grad:2}]};
+  courseDB['サンタアニタパーク 芝1000m']={distance:1000,segments:[]};
+  courseDB['サンタアニタパーク 芝1600m']={distance:1600,segments:[]};
+  courseDB['サンタアニタパーク 芝2000m']={distance:2000,segments:[{type:'down',start:0,end:150,grad:2}]};
+  courseDB['サンタアニタパーク 芝2400m']={distance:2400,segments:[{type:'down',start:350,end:550,grad:2}]};
+  courseDB['サンタアニタパーク ダート1200m']={distance:1200,segments:[]};
+  courseDB['サンタアニタパーク ダート1400m']={distance:1400,segments:[]};
+  courseDB['サンタアニタパーク ダート1600m']={distance:1600,segments:[]};
+  courseDB['サンタアニタパーク ダート1800m']={distance:1800,segments:[]};
+  courseDB['サンタアニタパーク ダート2000m']={distance:2000,segments:[]};
+  courseDB['デルマー 芝1000m']={distance:1000,segments:[]};
+  courseDB['デルマー 芝1600m']={distance:1600,segments:[]};
+  courseDB['デルマー 芝2200m']={distance:2200,segments:[]};
+  courseDB['デルマー 芝2400m']={distance:2400,segments:[]};
+  courseDB['デルマー ダート1200m']={distance:1200,segments:[]};
+  courseDB['デルマー ダート1400m']={distance:1400,segments:[]};
+  courseDB['デルマー ダート1600m']={distance:1600,segments:[]};
+  courseDB['デルマー ダート1800m']={distance:1800,segments:[]};
+  courseDB['デルマー ダート2000m']={distance:2000,segments:[]};
+
+  // コース別ステータス閾値ボーナス(該当ステータス× やる気補正の値を階層表に当てはめる。1〜2種)を自動付与
+  Object.keys(courseDB).forEach(key => {
+    courseDB[key].threshold = COURSE_THRESHOLDS[key] || [];
+  });
+}
+
+function venueOf(fullName){ return fullName.split(' ')[0]; }
+function labelOf(fullName){ return fullName.slice(venueOf(fullName).length + 1); }
+
+function refreshVenueSelect(){
+  const venues = Array.from(new Set(Object.keys(courseDB).map(venueOf))).sort();
+  const sel = document.getElementById('venueSelect');
+  sel.innerHTML = venues.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+function refreshCourseSelectForVenue(venue){
+  const names = Object.keys(courseDB).filter(n => venueOf(n) === venue);
+  const sel = document.getElementById('courseSelect');
+  sel.innerHTML = names.map(n => `<option value="${n}">${labelOf(n)}</option>`).join('');
+}
+function loadCourseDistance(name){
+  const course = courseDB[name];
+  if(!course) return;
+  document.getElementById('courseDistance').value = course.distance;
+  recalcAll();
+}
+function selectVenueAndCourse(venue, courseName){
+  document.getElementById('venueSelect').value = venue;
+  refreshCourseSelectForVenue(venue);
+  document.getElementById('courseSelect').value = courseName;
+  loadCourseDistance(courseName);
+}
+
+
+// ---- recovery / drain tiers (preset % + counter) ----
+const RECOVERY_TIERS = [
+  { pct: 0.35, label: '快速・覇気十分など', timing: 'mid2' },
+  { pct: 0.5,  label: '闘争心・綺羅星など', timing: 'mid2' },
+  { pct: 1.5,  label: 'コーナー回復○など', timing: 'mid2' },
+  { pct: 3.5,  label: '固有・複合回復など', timing: 'mid2' },
+  { pct: 5.5,  label: '円弧のマエストロなど', timing: 'mid2' },
+  { pct: 7.5,  label: '進化・強化回復など', timing: 'mid2' },
+  { pct: 9.5,  label: '一部の進化回復', timing: 'mid2' }
+];
+const DRAIN_TIERS = [
+  { pct: 0.5, label: 'スタミナイーターなど', timing: 'mid1' },
+  { pct: 1,   label: 'けん制・焦り・ささやきなど', timing: 'mid1' },
+  { pct: 2,   label: '一部の固有・複合デバフ', timing: 'late' },
+  { pct: 3,   label: '魅惑のささやき・八方にらみなど', timing: 'late' }
+];
+const TIMING_OPTIONS = [
+  ['open', '序盤'], ['mid1', '中盤(50%未満)'], ['mid2', '中盤(50%以降)'], ['late', '終盤'], ['spurt', 'ラストスパート']
+];
+
+function buildTierRows(containerId, tiers, prefix, showTiming){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  tiers.forEach((tier, idx) => {
+    const row = document.createElement('div');
+    row.className = 'tier-row';
+    if(!showTiming){
+      row.style.gridTemplateColumns = 'auto 1fr auto auto auto';
+    }
+    const timingCell = showTiming
+      ? (() => {
+          const timingOpts = TIMING_OPTIONS.map(([v, l]) =>
+            `<option value="${v}" ${v === tier.timing ? 'selected' : ''}>${l}</option>`
+          ).join('');
+          return `<select class="tier-timing" id="${prefix}-timing-${idx}">${timingOpts}</select>`;
+        })()
+      : '';
+    row.innerHTML = `
+      <span class="tier-pct">${tier.pct}%</span>
+      <span class="tier-label">${tier.label}</span>
+      <button class="stepper-btn tier-minus" type="button">−</button>
+      <span class="tier-count" id="${prefix}-count-${idx}">0</span>
+      <button class="stepper-btn tier-plus" type="button">＋</button>
+      ${timingCell}
+    `;
+    let count = 0;
+    const countEl = row.querySelector(`#${prefix}-count-${idx}`);
+    row.querySelector('.tier-minus').addEventListener('click', () => {
+      count = Math.max(0, count - 1);
+      countEl.textContent = count;
+      recalcAll();
+    });
+    row.querySelector('.tier-plus').addEventListener('click', () => {
+      count += 1;
+      countEl.textContent = count;
+      recalcAll();
+    });
+    if(showTiming){
+      row.querySelector('.tier-timing').addEventListener('change', recalcAll);
+    }
+    container.appendChild(row);
+  });
+}
+
+function readTierTotals(containerId, tiers, prefix, showTiming){
+  const byPhase = { open: 0, mid1: 0, mid2: 0, late: 0, spurt: 0 };
+  let total = 0;
+  tiers.forEach((tier, idx) => {
+    const countEl = document.getElementById(`${prefix}-count-${idx}`);
+    const count = parseInt(countEl.textContent, 10) || 0;
+    const timing = showTiming ? document.getElementById(`${prefix}-timing-${idx}`).value : tier.timing;
+    byPhase[timing] += tier.pct * count;
+    total += tier.pct * count;
+  });
+  return { byPhase, total };
+}
+
+// ---- reference tables ----
+const PHASE_MOD_SPEED = {
+  runaway: { open: 1.063, mid: 0.962, late: 0.95 },
+  front:   { open: 1.0,   mid: 0.98,  late: 0.962 },
+  pace:    { open: 0.978, mid: 0.991, late: 0.975 },
+  late:    { open: 0.938, mid: 0.998, late: 0.994 },
+  end:     { open: 0.931, mid: 1.0,   late: 1.0 }
+};
+const STYLE_HP_MOD = { runaway: 0.86, front: 0.95, pace: 0.89, late: 1.0, end: 0.995 };
+
+// acceleration phase modifier (distinct from the speed phase modifier above)
+const PHASE_MOD_ACCEL = {
+  runaway: { open: 1.17,  mid: 0.94, late: 0.956 },
+  front:   { open: 1.0,   mid: 1.0,  late: 0.996 },
+  pace:    { open: 0.985, mid: 1.0,  late: 0.996 },
+  late:    { open: 0.975, mid: 1.0,  late: 1.0 },
+  end:     { open: 0.945, mid: 1.0,  late: 0.997 }
+};
+const DECEL_BY_PHASE = { open: -1.2, mid1: -0.8, mid2: -0.8, late: -1.0, spurt: -1.0 };
+
+// ---- 脚色十分 (Sufficient Leg Color) ----
+function distanceCategory(distance){
+  if(distance <= 1400) return 'SHORT';
+  if(distance <= 1800) return 'MILE';
+  if(distance <= 2400) return 'MIDDLE';
+  return 'LONG';
+}
+const CONSERVE_POWER_TIME_COEF = { SHORT: 0.45, MILE: 1.0, MIDDLE: 0.875, LONG: 0.8 };
+const CONSERVE_POWER_ACCEL_COEF = {
+  runaway: { SHORT: 1.0,  MILE: 1.0,  MIDDLE: 1.0,   LONG: 1.0 },
+  front:   { SHORT: 1.0,  MILE: 1.0,  MIDDLE: 1.0,   LONG: 1.0 },
+  pace:    { SHORT: 0.7,  MILE: 0.8,  MIDDLE: 0.9,   LONG: 0.9 },
+  late:    { SHORT: 0.75, MILE: 0.7,  MIDDLE: 0.875, LONG: 1.0 },
+  end:     { SHORT: 0.7,  MILE: 0.75, MIDDLE: 0.86,  LONG: 0.9 }
+};
+const CONSERVE_POWER_BASE_SECONDS = 3;
+
+// ---- 位置取り調整・リード確保 (style/distance coefficients) ----
+const POSITION_COMP_STAMINA_COEF = { runaway: 1.5, front: 1.2, pace: 1.0, late: 1.0, end: 1.0 };
+const SPOT_STRUGGLE_MULT = { front: 1.4, runaway: 3.5 }; // 逃げ/大逃げで基本倍率自体が異なる(確認済み)
+const SECURE_LEAD_STAMINA_COEF = { runaway: 1.2, front: 1.0, pace: 0.8, late: 0.8, end: 0.0 };
+function distanceCoefTier(distance){
+  if(distance < 1401) return 0.3;
+  if(distance < 1801) return 0.3;
+  if(distance < 2101) return 0.5;
+  if(distance < 2201) return 0.8;
+  if(distance < 2401) return 1.0;
+  if(distance < 2601) return 1.1;
+  return 1.2;
+}
+
+// ---- スタミナ勝負 (Stamina Battle) : distance gate only, effect ~neutral on average ----
+function staminaBattleDistanceCoef(distance){
+  if(distance < 2101) return 0.0;
+  if(distance < 2201) return 0.5;
+  if(distance < 2401) return 1.0;
+  if(distance < 2601) return 1.2;
+  return 1.5;
+}
+// スタミナ勝負(Stamina Limit Break): スタミナが1200を超えた分に応じて、
+// ラストスパート速度に「加算」される速度ボーナス。乱数テーブルの期待値を使用。
+// ランダム係数テーブル: 50%で0.98-1.00(中央値0.99) / 30%で0.95-0.98(中央値0.965) / 20%で1.00-1.02(中央値1.01)
+const STAMINA_LIMIT_BREAK_RANDOM_EXPECTED = 0.5 * 0.99 + 0.3 * 0.965 + 0.2 * 1.01; // ≈0.9865
+const SECURE_LEAD_TRIGGER_RATE = 0.3; // ゴリラの計算機で確認した発生率(mee1080側は変数の存在のみ確認、数値は未確認)
+function staminaLimitBreakBonus(distance, effectiveStamina){
+  const coef = staminaBattleDistanceCoef(distance);
+  if(coef <= 0 || effectiveStamina <= 1200) return 0;
+  return Math.sqrt(effectiveStamina - 1200) * 0.0085 * coef * STAMINA_LIMIT_BREAK_RANDOM_EXPECTED;
+}
+
+const DIST_APT_MOD = { S: 1.05, A: 1.0, B: 0.9, C: 0.8, D: 0.6, E: 0.4, F: 0.2, G: 0.1 };
+const STYLE_APT_MOD = { S: 1.10, A: 1.00, B: 0.85, C: 0.75, D: 0.60, E: 0.40, F: 0.20, G: 0.10 };
+
+const PHASE_LABEL = { open: '序盤', mid1: '中盤(50%未満)', mid2: '中盤(50%以降)', late: '終盤', spurt: 'ラストスパート' };
+const PHASE_ORDER = ['open', 'mid1', 'mid2', 'late', 'spurt'];
+const PHASE_COLOR = { open: '#8bbf9f', mid1: '#2c9c5c', mid2: '#1a7d42', late: '#b8860b', spurt: '#c0392b' };
+
+// exact 1-second Markov recursion for expected ON-seconds within a downhill segment overlap
+function expectedOnSeconds(pOn, pOff, totalSeconds){
+  pOn = Math.min(1, Math.max(0, pOn));
+  pOff = Math.min(1, Math.max(0, pOff));
+  const full = Math.floor(totalSeconds);
+  const frac = totalSeconds - full;
+  let probOff = 1, probOn = 0;
+  let expected = 0;
+  for(let t = 0; t < full; t++){
+    const gOn = probOn + probOff * pOn;
+    expected += gOn;
+    const newOn = probOff * pOn + probOn * (1 - pOff);
+    const newOff = probOff * (1 - pOn) + probOn * pOff;
+    probOn = newOn; probOff = newOff;
+  }
+  if(frac > 0){
+    const gOn = probOn + probOff * pOn;
+    expected += gOn * frac;
+  }
+  return expected;
+}
+
+// per-second acceleration/deceleration simulation of the base run (no skills/debuffs),
+// so HP consumption uses the ACTUAL current speed rather than assuming instant arrival
+// at each phase's target speed.
+function simulateBaseRun(opts){
+  const { distance, rawBase, PM, style, speed, power, guts, stamina, distApt, groundMod, gutsMod,
+          hpK, hpDiv, upSegs, phaseStart, conservePowerEnabled, conservePowerDuration } = opts;
+  const speedTerm = Math.sqrt(500 * speed) * distApt * 0.002;
+  const gutsSpurtTerm = Math.pow(450 * guts, 0.597) * 0.0001; // ガッツ再調整(2025/11/11)で追加された項
+  const staminaLimitBonus = staminaLimitBreakBonus(distance, stamina);
+  const vLateBase = rawBase * PM.late + speedTerm;
+  const vSpurtBase = (vLateBase + 0.01 * rawBase) * 1.05 + speedTerm + gutsSpurtTerm + staminaLimitBonus;
+  const accelMod = PHASE_MOD_ACCEL[style];
+  const conservePowerAccelCoef = CONSERVE_POWER_ACCEL_COEF[style]
+    ? CONSERVE_POWER_ACCEL_COEF[style][distanceCategory(distance)]
+    : 1.0;
+
+  function phaseOf(pos){
+    if(pos < phaseStart.mid1) return 'open';
+    if(pos < phaseStart.mid2) return 'mid1';
+    if(pos < phaseStart.late) return 'mid2';
+    if(pos < phaseStart.spurt) return 'late';
+    return 'spurt';
+  }
+  function baseTargetSpeed(phase){
+    if(phase === 'open') return rawBase * PM.open;
+    if(phase === 'mid1' || phase === 'mid2') return rawBase * PM.mid;
+    if(phase === 'late') return vLateBase;
+    return vSpurtBase;
+  }
+  function accelKey(phase){
+    if(phase === 'mid1' || phase === 'mid2') return 'mid';
+    if(phase === 'spurt') return 'late';
+    return phase;
+  }
+  function uphillPenalty(pos){
+    for(const seg of upSegs){
+      if(pos >= seg.start && pos < seg.end){
+        return { penalty: Math.abs(seg.grad) * 200 / Math.max(power, 1), onUphill: true };
+      }
+    }
+    return { penalty: 0, onUphill: false };
+  }
+
+  let pos = 0, v = 3, t = 0;
+  let spurtElapsed = 0; // seconds elapsed since entering the spurt phase (for 脚色十分 window)
+  const phaseConsumption = { open: 0, mid1: 0, mid2: 0, late: 0, spurt: 0 };
+  const phaseSeconds = { open: 0, mid1: 0, mid2: 0, late: 0, spurt: 0 };
+  const applyGutsPhase = { open: false, mid1: false, mid2: false, late: true, spurt: true };
+  const maxIter = 400;
+  const trace = []; // per-second: { phase, consumption, posStart, posEnd }
+
+  while(pos < distance && t < maxIter){
+    const phase = phaseOf(pos);
+    const { penalty, onUphill } = uphillPenalty(pos);
+    const targetV = Math.max(3, baseTargetSpeed(phase) - penalty);
+    const baseAccel = onUphill ? 0.0004 : 0.0006;
+    let accelModPhase = accelMod[accelKey(phase)] ?? 1.0;
+
+    if(phase === 'spurt'){
+      if(conservePowerEnabled && spurtElapsed < conservePowerDuration){
+        accelModPhase *= conservePowerAccelCoef;
+      }
+      spurtElapsed += 1;
+    }
+
+    const accel = baseAccel * Math.sqrt(500 * power) * accelModPhase;
+
+    if(v < targetV){
+      v = Math.min(targetV, v + accel);
+    } else if(v > targetV){
+      v = Math.max(targetV, v + DECEL_BY_PHASE[phase]);
+    }
+
+    const rate = hpK * Math.pow(v - rawBase + 12, 2) / hpDiv * groundMod * (applyGutsPhase[phase] ? gutsMod : 1);
+    phaseConsumption[phase] += rate;
+    phaseSeconds[phase] += 1;
+    trace.push({ phase, consumption: rate, posStart: pos, posEnd: pos + v });
+    pos += v;
+    t += 1;
+  }
+  return { phaseConsumption, phaseSeconds, totalSeconds: t, trace };
+}
+
+
+function capStat(v){
+  return v <= 1200 ? v : 1200 + (v - 1200) / 2;
+}
+
+// ---- 馬場によるステータス直接減算・HP消費倍率(確認済み) ----
+const GROUND_SPEED_DEDUCT = { firm: 0, good: 0, soft: 0, heavy: 50 };
+const GROUND_POWER_DEDUCT = {
+  turf: { firm: 0,   good: 50, soft: 50,  heavy: 50 },
+  dirt: { firm: 100, good: 50, soft: 100, heavy: 100 }
+};
+const GROUND_HP_MULT = {
+  turf: { firm: 1.0, good: 1.0, soft: 1.02, heavy: 1.02 },
+  dirt: { firm: 1.0, good: 1.0, soft: 1.01, heavy: 1.02 }
+};
+
+// ---- コース別ステータス閾値ボーナス(該当ステータスの値そのものを300刻みの階層表に当てはめ、最大+20%) ----
+function thresholdCoefFor(statValue){
+  if(statValue <= 300) return 0.05;
+  if(statValue <= 600) return 0.1;
+  if(statValue <= 900) return 0.15;
+  return 0.2;
+}
+
+function recalcAll(){
+  const moodMult = parseFloat(document.getElementById('mood').value) || 1.0;
+  const speedCapped = capStat((parseFloat(document.getElementById('statSpeed').value) || 0) * moodMult);
+  const stamina = capStat((parseFloat(document.getElementById('statStamina').value) || 0) * moodMult);
+  const powerCapped = capStat(Math.max(1, (parseFloat(document.getElementById('statPower').value) || 1) * moodMult));
+  const guts = capStat(Math.max(1, (parseFloat(document.getElementById('statGuts').value) || 1) * moodMult));
+  const wisdomRaw = capStat(Math.max(1, (parseFloat(document.getElementById('statWisdom').value) || 1) * moodMult));
+  const styleAptRank = document.getElementById('styleApt').value;
+  const styleApt = STYLE_APT_MOD[styleAptRank] ?? 1.0;
+  const wisdom = wisdomRaw * styleApt; // corrected wisdom, used for rushed chance / downhill mode
+  const style = document.getElementById('style').value;
+  const distAptRank = document.getElementById('distApt').value;
+  const distApt = DIST_APT_MOD[distAptRank] ?? 1.0;
+  const surface = document.getElementById('surface').value;
+  const babaKey = document.getElementById('baba').value;
+  const groundMod = GROUND_HP_MULT[surface][babaKey];
+  const distance = parseFloat(document.getElementById('courseDistance').value) || 2000;
+  const courseName = document.getElementById('courseSelect').value;
+  const course = courseDB[courseName];
+
+  // コース別ステータス閾値ボーナス(該当コースのみ、自動判定)
+  const STAT_LABEL_JA = { speed: 'スピード', stamina: 'スタミナ', power: 'パワー', guts: '根性', wisdom: '賢さ' };
+  const statValues = { speed: speedCapped, stamina, power: powerCapped, guts, wisdom: wisdomRaw };
+  const thresholdStats = (course && course.threshold) ? course.threshold : [];
+  // 各ステータスごとに300刻みの階層表でボーナス値を算出し、2種類ある場合はそれぞれを半分にしてから合算する
+  const perStatBonuses = thresholdStats.map(s => thresholdCoefFor(statValues[s]));
+  const thresholdCoef = thresholdStats.length === 2
+    ? perStatBonuses[0] / 2 + perStatBonuses[1] / 2
+    : (perStatBonuses[0] || 0);
+  document.getElementById('thresholdBonusShow').textContent = '+' + (thresholdCoef * 100).toFixed(1) + '%';
+  document.getElementById('thresholdStatShow').textContent = thresholdStats.length > 0
+    ? thresholdStats.map(s => STAT_LABEL_JA[s]).join(' ・ ')
+    : '対象コースではありません';
+
+  // 馬場によるフラット減算を適用(スピードは閾値ボーナス「後」、パワーは単純減算)
+  const speed = speedCapped * (1 + thresholdCoef) - GROUND_SPEED_DEDUCT[babaKey];
+  const power = powerCapped - GROUND_POWER_DEDUCT[surface][babaKey];
+
+  const gutsCoefA = parseFloat(document.getElementById('gutsFormulaA').value) || 200;
+  const hpK = parseFloat(document.getElementById('hpFormulaK').value) || 20;
+  const hpDiv = parseFloat(document.getElementById('hpFormulaDiv').value) || 144;
+  const rushedMult = parseFloat(document.getElementById('rushedMult').value) || 1.6;
+  const spotMult = SPOT_STRUGGLE_MULT[style] ?? 1.4; // 逃げ1.4倍・大逃げ3.5倍(確認済み、掛かり同時発生時は別途3.6/7.7倍)
+  const downhillMult = parseFloat(document.getElementById('downhillMult').value) || 0.4;
+
+  const rawBase = 20 - (distance - 2000) / 1000;
+  const PM = PHASE_MOD_SPEED[style];
+
+  const vOpen = rawBase * PM.open;
+  const vMid = rawBase * PM.mid;
+  const speedTerm = Math.sqrt(500 * speed) * distApt * 0.002;
+  const gutsSpurtTerm = Math.pow(450 * guts, 0.597) * 0.0001; // ガッツ再調整(2025/11/11)で追加された項
+  const vLate = rawBase * PM.late + speedTerm; // FinalLegSpeed
+  const staminaLimitBonusRef = staminaLimitBreakBonus(distance, stamina);
+  const vSpurt = (vLate + 0.01 * rawBase) * 1.05 + speedTerm + gutsSpurtTerm + staminaLimitBonusRef; // MaxSpurtSpeed (if HP allows)
+
+  const gutsMod = 1 + gutsCoefA / Math.sqrt(600 * guts);
+
+  function hpRate(v, applyGuts){
+    const base = hpK * Math.pow(v - rawBase + 12, 2) / hpDiv * groundMod;
+    return applyGuts ? base * gutsMod : base;
+  }
+
+  const phaseDistance = {
+    open: distance / 6,
+    mid1: distance / 2 - distance / 6,   // 1/6 -> 1/2
+    mid2: distance * 4 / 6 - distance / 2, // 1/2 -> 4/6
+    late: distance / 6,     // 4/6 -> 5/6
+    spurt: distance / 6     // 5/6 -> 6/6
+  };
+  const phaseStart = {
+    open: 0,
+    mid1: distance / 6,
+    mid2: distance / 2,
+    late: distance * 4 / 6,
+    spurt: distance * 5 / 6
+  };
+  const phaseSpeed = { open: vOpen, mid1: vMid, mid2: vMid, late: vLate, spurt: vSpurt };
+  const phaseApplyGuts = { open: false, mid1: false, mid2: false, late: true, spurt: true };
+
+  // ---- 掛かり (Rushed) ----
+  const rushedChancePct = Math.pow(6.5 / Math.log10(0.1 * wisdom + 1), 2);
+  document.getElementById('rushedChanceShow').textContent = Math.min(100, rushedChancePct).toFixed(1) + '%';
+  const rushedOn = document.getElementById('rushedToggle').checked;
+  const rushedDuration = parseFloat(document.getElementById('rushedDuration').value) || 0;
+
+  // ---- 位置取り争い (Spot Struggle, front runner / runaway only) ----
+  const STYLE_LABEL = { runaway: '大逃げ', front: '逃げ', pace: '先行', late: '差し', end: '追込' };
+  const isFrontStyle = (style === 'front' || style === 'runaway');
+  const spotCheckbox = document.getElementById('spotStruggleToggle');
+  const spotErrorBox = document.getElementById('spotStruggleError');
+  const spotStrip = document.getElementById('spotStruggleStrip');
+
+  if(!isFrontStyle && spotCheckbox.checked){
+    spotCheckbox.checked = false;
+    spotErrorBox.style.display = 'block';
+    spotErrorBox.textContent = `⚠ 位置取り争いは「逃げ」「大逃げ」の脚質でのみ発生します。現在の脚質(${STYLE_LABEL[style]})では対象外のため、チェックを自動的に外しました。`;
+  } else if(!isFrontStyle){
+    spotErrorBox.style.display = 'block';
+    spotErrorBox.textContent = `現在の脚質(${STYLE_LABEL[style]})では位置取り争いは発生しません(対象は「逃げ」「大逃げ」のみ)。`;
+  } else {
+    spotErrorBox.style.display = 'none';
+  }
+  spotCheckbox.disabled = !isFrontStyle;
+  spotStrip.style.display = isFrontStyle ? 'flex' : 'none';
+
+  const spotOn = isFrontStyle && spotCheckbox.checked;
+  const spotDuration = Math.pow(700 * guts, 0.5) * 0.012;
+  const spotSpeedBoost = Math.pow(500 * guts, 0.6) * 0.0001;
+  const vSpotBoosted = vOpen + spotSpeedBoost;
+  if(isFrontStyle){
+    document.getElementById('spotDurationShow').textContent = spotDuration.toFixed(1) + 's';
+    document.getElementById('spotSpeedShow').textContent = spotSpeedBoost.toFixed(3) + ' m/s';
+  }
+
+  // ---- 位置取りかかり (combined event: both Rushed AND Spot Struggle checked -> always occurs) ----
+  const positionRushedOn = rushedOn && spotOn;
+  const positionRushedOverlap = positionRushedOn ? Math.min(rushedDuration, spotDuration) : 0;
+  const combinedMult = style === 'runaway' ? 7.7 : 3.6;
+  let positionRushedConsumption = 0;
+  if(positionRushedOverlap > 0){
+    positionRushedConsumption = positionRushedOverlap * (hpRate(vSpotBoosted, false) * combinedMult - hpRate(vOpen, false));
+  }
+  document.getElementById('positionRushedBox').style.display = positionRushedOn ? 'block' : 'none';
+  if(positionRushedOn){
+    document.getElementById('positionRushedOverlapShow').textContent = positionRushedOverlap.toFixed(1) + 's';
+    document.getElementById('positionRushedConsumeShow').textContent = '+' + Math.round(positionRushedConsumption) + ' pt';
+  }
+
+  // remaining (non-overlapping) portion of each event still applies at its own normal multiplier
+  const rushedRemainder = rushedOn ? Math.max(0, rushedDuration - positionRushedOverlap) : 0;
+  const rushedExtraConsumption = rushedRemainder * hpRate(vMid, false) * (rushedMult - 1);
+
+  const spotRemainder = spotOn ? Math.max(0, spotDuration - positionRushedOverlap) : 0;
+  const spotExtraConsumption = spotRemainder * (hpRate(vSpotBoosted, false) * spotMult - hpRate(vOpen, false));
+  if(isFrontStyle){
+    document.getElementById('spotConsumeShow').textContent = '+' + Math.round(spotExtraConsumption) + ' pt';
+  }
+
+  // ---- 下り坂モードによる軽減 ----
+  const downSegs = course ? course.segments.filter(s => s.type === 'down') : [];
+  document.getElementById('downhillSegShow').textContent = downSegs.length
+    ? downSegs.map(s => `${s.start}〜${s.end}m`).join(' / ')
+    : 'なし';
+
+  const pOnDownhill = wisdom * 0.0004; // 0.04% per wisdom point, per second
+
+  function downhillSavingForPhase(phase){
+    const v = phaseSpeed[phase];
+    const pStart = phaseStart[phase];
+    const pEnd = pStart + phaseDistance[phase];
+    let saving = 0;
+    downSegs.forEach(seg => {
+      const ovStart = Math.max(pStart, seg.start);
+      const ovEnd = Math.min(pEnd, seg.end);
+      if(ovEnd > ovStart){
+        const ovMeters = ovEnd - ovStart;
+        const ovSeconds = ovMeters / Math.max(v, 0.1);
+        const expOn = expectedOnSeconds(pOnDownhill, 0.2, ovSeconds);
+        const rate = hpRate(v, phaseApplyGuts[phase]);
+        saving += rate * expOn * (1 - downhillMult);
+      }
+    });
+    return saving;
+  }
+  const totalDownhillSaving = PHASE_ORDER.reduce((s, p) => s + downhillSavingForPhase(p), 0);
+
+  // ---- 位置取り調整 (Repositioning, non-front-runner only) ----
+  const isNonFront = !(style === 'front' || style === 'runaway');
+  document.getElementById('repositionBlock').style.display = isNonFront ? 'block' : 'none';
+  const repositionWindowStart = distance * 11 / 24, repositionWindowEnd = distance * 15 / 24; // sections 11-15 of 24
+  let repositionExtraConsumption = 0;
+  if(isNonFront){
+    const windowSeconds = Math.max(0, (repositionWindowEnd - repositionWindowStart) / Math.max(vMid, 0.1));
+    const cycles = windowSeconds / 4; // 2s active + 2s cooldown per cycle
+    const expectedActivations = cycles * 0.8;
+    const repositionCost = parseFloat(document.getElementById('repositionCost').value) || 0;
+    const styleCoef = POSITION_COMP_STAMINA_COEF[style] ?? 1.0;
+    const distCoef = distanceCoefTier(distance);
+    repositionExtraConsumption = expectedActivations * repositionCost * styleCoef * distCoef;
+    document.getElementById('repositionCountShow').textContent = expectedActivations.toFixed(1) + '回';
+    document.getElementById('repositionConsumeShow').textContent = '+' + Math.round(repositionExtraConsumption) + ' pt';
+    document.getElementById('repositionCoefShow').textContent = `脚質係数×${styleCoef} ／ 距離係数×${distCoef}`;
+  }
+
+  // ---- リード確保 (Secure Lead, non-end-closer only) ----
+  const isNonEnd = (style !== 'end');
+  document.getElementById('secureLeadBlock').style.display = isNonEnd ? 'block' : 'none';
+  let secureLeadExtraConsumption = 0;
+  if(isNonEnd){
+    const secureLeadCost = parseFloat(document.getElementById('secureLeadCost').value) || 0;
+    const secureLeadCount = parseFloat(document.getElementById('secureLeadCount').value) || 0;
+    const styleCoef = SECURE_LEAD_STAMINA_COEF[style] ?? 1.0;
+    const distCoef = distanceCoefTier(distance);
+    const expectedActivations = secureLeadCount * SECURE_LEAD_TRIGGER_RATE;
+    secureLeadExtraConsumption = secureLeadCost * expectedActivations * styleCoef * distCoef;
+    document.getElementById('secureLeadCountShow').textContent = expectedActivations.toFixed(2) + '回';
+    document.getElementById('secureLeadConsumeShow').textContent = '+' + Math.round(secureLeadExtraConsumption) + ' pt';
+    document.getElementById('secureLeadCoefShow').textContent = `発生率×${SECURE_LEAD_TRIGGER_RATE} ／ 脚質係数×${styleCoef} ／ 距離係数×${distCoef}`;
+  }
+
+  // ---- スタミナ勝負 (Stamina Limit Break): distance-gated additive speed bonus, applied to Last Spurt ----
+  const staminaBattleCoef = staminaBattleDistanceCoef(distance);
+  const staminaLimitBonusShow = staminaLimitBreakBonus(distance, stamina);
+  document.getElementById('staminaBattleShow').textContent = staminaBattleCoef > 0 && stamina > 1200
+    ? `対象(期待値+${staminaLimitBonusShow.toFixed(3)} m/s)` : '対象外(距離2101m未満、またはスタミナ1200以下)';
+
+  // ---- 追い比べ (Dueling) ----
+  const duelOn = document.getElementById('duelToggle').checked;
+  const duelDuration = parseFloat(document.getElementById('duelDuration').value) || 0;
+  const duelPhase = document.getElementById('duelPhase').value;
+  const duelSpeedBoost = Math.pow(200 * guts, 0.708) * 0.0001;
+  let duelExtraConsumption = 0;
+  if(duelOn){
+    const vBase = phaseSpeed[duelPhase];
+    const vBoosted = vBase + duelSpeedBoost;
+    duelExtraConsumption = duelDuration * (hpRate(vBoosted, phaseApplyGuts[duelPhase]) - hpRate(vBase, phaseApplyGuts[duelPhase]));
+  }
+  document.getElementById('duelSpeedShow').textContent = duelSpeedBoost.toFixed(3) + ' m/s';
+  document.getElementById('duelConsumeShow').textContent = (duelOn ? '+' : '') + Math.round(duelExtraConsumption) + ' pt';
+
+  // gather recovery / drain totals per phase (preset tiers)
+  const recoveryTotals = readTierTotals('recoveryTierList', RECOVERY_TIERS, 'rc', false);
+  const drainTotals = readTierTotals('drainTierList', DRAIN_TIERS, 'dr', true);
+  document.getElementById('recoveryTotalShow').textContent = '+' + recoveryTotals.total.toFixed(2) + '%';
+  document.getElementById('drainTotalShow').textContent = '-' + drainTotals.total.toFixed(2) + '%';
+
+  const recoveryByPhase = recoveryTotals.byPhase;
+  const maxHP = distance + stamina * 0.8 * STYLE_HP_MOD[style];
+  const strictMode = document.getElementById('strictModeToggle').checked;
+  const marginRequired = strictMode ? maxHP * 0.05 : 0;
+
+  // per-second acceleration-aware simulation of the base run (shared by both scenarios below)
+  const upSegs = course ? course.segments.filter(s => s.type === 'up') : [];
+  const conservePowerOn = document.getElementById('conservePowerToggle').checked;
+  const conservePowerDuration = CONSERVE_POWER_BASE_SECONDS * CONSERVE_POWER_TIME_COEF[distanceCategory(distance)];
+  document.getElementById('conservePowerDurationShow').textContent = conservePowerDuration.toFixed(2) + 's';
+  document.getElementById('conservePowerCategoryShow').textContent = distanceCategory(distance);
+
+  const sim = simulateBaseRun({
+    distance, rawBase, PM, style, speed, power, guts, stamina, distApt, groundMod, gutsMod, hpK, hpDiv,
+    upSegs, phaseStart, conservePowerEnabled: conservePowerOn, conservePowerDuration
+  });
+
+  const phaseData = PHASE_ORDER.map(phase => {
+    const durationSec = sim.phaseSeconds[phase];
+    const saving = downhillSavingForPhase(phase);
+    const baseConsumption = Math.max(0, sim.phaseConsumption[phase] - saving);
+    const recoveryHP = maxHP * (recoveryByPhase[phase] / 100);
+    const v = durationSec > 0 ? phaseDistance[phase] / durationSec : phaseSpeed[phase];
+    return { phase, v, durationSec, baseConsumption, recoveryHP };
+  });
+  document.getElementById('downhillSaveShow').textContent = '-' + Math.round(totalDownhillSaving) + ' pt';
+
+  // ---- run one full scenario: rushedActive = whether 掛かり occurs; conserveRoll = whether the
+  // stamina-conservation 90% roll succeeds (only matters if HP is actually insufficient at the check point) ----
+  const STAMINA_KEEP_RATE = 0.9;
+
+  function runScenario(rushedActive, conserveRoll){
+    const rushedOnScenario = rushedOn && rushedActive;
+    const positionRushedOnScenario = rushedOnScenario && spotOn;
+    const overlapScenario = positionRushedOnScenario ? Math.min(rushedDuration, spotDuration) : 0;
+    const positionRushedConsumptionScenario = overlapScenario > 0
+      ? overlapScenario * (hpRate(vSpotBoosted, false) * combinedMult - hpRate(vOpen, false)) : 0;
+    const rushedRemainderScenario = rushedOnScenario ? Math.max(0, rushedDuration - overlapScenario) : 0;
+    const rushedExtraScenario = rushedRemainderScenario * hpRate(vMid, false) * (rushedMult - 1);
+    const spotRemainderScenario = spotOn ? Math.max(0, spotDuration - overlapScenario) : 0;
+    const spotExtraScenario = spotRemainderScenario * (hpRate(vSpotBoosted, false) * spotMult - hpRate(vOpen, false));
+
+    const mandatoryDrain = { open: 0, mid1: 0, mid2: 0, late: 0, spurt: 0 };
+    TIMING_OPTIONS.forEach(([key]) => { mandatoryDrain[key] += maxHP * (drainTotals.byPhase[key] / 100); });
+    mandatoryDrain.mid1 += rushedExtraScenario;
+    mandatoryDrain.open += spotExtraScenario;
+    mandatoryDrain.open += positionRushedConsumptionScenario;
+
+    const recoveryPtByPhase = {};
+    PHASE_ORDER.forEach(p => { recoveryPtByPhase[p] = maxHP * (recoveryByPhase[p] / 100); });
+    const downhillSaveByPhase = {};
+    PHASE_ORDER.forEach(p => { downhillSaveByPhase[p] = downhillSavingForPhase(p); });
+
+    // ---- build a per-second net-change array from the trace: +recovery, -consumption, -mandatoryDrain, +downhillSaving ----
+    // lump-sum items (recovery/mandatoryDrain/downhillSaving) are applied at the first second of their phase.
+    const trace = sim.trace;
+    const n = trace.length;
+    const netPerSecond = new Array(n);
+    const seenPhase = {};
+    let repositionSecondIdx = -1, secureLeadSecondIdx = -1, duelSecondIdx = -1;
+
+    for(let idx = 0; idx < n; idx++){
+      const step = trace[idx];
+      const phase = step.phase;
+      let net = step.consumption;
+      if(!seenPhase[phase]){
+        seenPhase[phase] = true;
+        net += mandatoryDrain[phase];
+        net -= recoveryPtByPhase[phase];
+        net -= downhillSaveByPhase[phase];
+      }
+      netPerSecond[idx] = net;
+      if(repositionSecondIdx === -1 && step.posStart >= repositionWindowStart) repositionSecondIdx = idx;
+      if(secureLeadSecondIdx === -1 && phase === 'mid2') secureLeadSecondIdx = idx; // secure lead: mid-race, checked once mid2 begins
+      if(duelSecondIdx === -1 && phase === duelPhase) duelSecondIdx = idx;
+    }
+
+    // suffix sums (remaining net consumption from second idx to the end, inclusive)
+    const suffixNet = new Array(n + 1).fill(0);
+    for(let idx = n - 1; idx >= 0; idx--) suffixNet[idx] = suffixNet[idx + 1] + netPerSecond[idx];
+
+    // ---- 1-second-by-second unclamped trajectory: 完走判定はゴール時点(最終値)の不足分のみで見る ----
+    // キビシメモード時は、最大HPの5%分の余裕を要求する
+    let hpUnclamped = maxHP, minUnclamped = maxHP;
+    for(let idx = 0; idx < n; idx++){
+      hpUnclamped -= netPerSecond[idx];
+      if(hpUnclamped < minUnclamped) minUnclamped = hpUnclamped;
+    }
+    const hadTemporaryDip = minUnclamped < marginRequired;
+    const shortfall = Math.max(0, marginRequired - hpUnclamped);
+    const failedTrue = shortfall > 0;
+
+    const totalVoluntary = repositionExtraConsumption + secureLeadExtraConsumption + duelExtraConsumption;
+    const shortfallIncludingVoluntary = Math.max(0, totalVoluntary + marginRequired - hpUnclamped);
+
+    // ---- 1-second-by-second clamped trajectory with voluntary-event suppression ----
+    let hp = maxHP, conservationCount = 0, failedSecond = -1, failFraction = 0;
+    const conservationPositions = []; // % of race distance where 持久力温存 activated
+    const phaseRowAgg = {};
+    PHASE_ORDER.forEach(p => { phaseRowAgg[p] = { consumption: 0, recovery: 0 }; });
+
+    for(let idx = 0; idx < n; idx++){
+      const phase = trace[idx].phase;
+      let extra = 0;
+
+      if(idx === repositionSecondIdx || idx === secureLeadSecondIdx){
+        // 持久力温存は「HPが足りているか(キビシメモード時は5%の余裕込み)」で決まる単一の状態。
+        // 足りない場合のみ90%ロールを適用する。
+        const hpBeforeThisSecond = hp; // HP at the very start of this second, before its own consumption
+        if(idx === repositionSecondIdx && repositionExtraConsumption > 0){
+          const insufficient = (hpBeforeThisSecond - repositionExtraConsumption - suffixNet[idx] - marginRequired) < 0;
+          const conservationActive = insufficient && conserveRoll;
+          if(!conservationActive){ extra += repositionExtraConsumption; }
+          else { conservationCount++; conservationPositions.push(trace[idx].posStart / distance * 100); }
+        }
+        if(idx === secureLeadSecondIdx && secureLeadExtraConsumption > 0){
+          const insufficient = (hpBeforeThisSecond - extra - secureLeadExtraConsumption - suffixNet[idx] - marginRequired) < 0;
+          const conservationActive = insufficient && conserveRoll;
+          if(!conservationActive){ extra += secureLeadExtraConsumption; }
+          else { conservationCount++; conservationPositions.push(trace[idx].posStart / distance * 100); }
+        }
+      }
+      if(idx === duelSecondIdx && duelExtraConsumption !== 0){
+        const hpFraction = maxHP > 0 ? (hp - extra) / maxHP : 0;
+        if(hpFraction >= 0.15){ extra += duelExtraConsumption; }
+        else { conservationCount++; conservationPositions.push(trace[idx].posStart / distance * 100); }
+      }
+
+      if(!seenPhase[phase + '_recovery']){
+        seenPhase[phase + '_recovery'] = true;
+        phaseRowAgg[phase].recovery += recoveryPtByPhase[phase];
+      }
+      const totalConsumption = netPerSecond[idx] + extra;
+      phaseRowAgg[phase].consumption += totalConsumption;
+
+      const remaining = hp - totalConsumption;
+      if(remaining < 0 && failedSecond === -1){
+        failedSecond = idx;
+        failFraction = totalConsumption > 0 ? Math.max(0, Math.min(1, hp / totalConsumption)) : 0;
+      }
+      hp = Math.max(0, remaining);
+    }
+    const failedPhase = failedSecond >= 0 ? trace[failedSecond].phase : null;
+
+    // ---- phase-level rows for display ----
+    let hpDisplay = maxHP;
+    let firstFailedSeen = false;
+    const rows = phaseData.map(d => {
+      const phase = d.phase;
+      const agg = phaseRowAgg[phase];
+      hpDisplay -= agg.consumption;
+      const failed = !firstFailedSeen && hpDisplay < 0;
+      if(failed) firstFailedSeen = true;
+      hpDisplay = Math.max(0, hpDisplay);
+      return { phase, v: d.v, durationSec: d.durationSec, recoveryHP: agg.recovery, totalConsumption: agg.consumption, hpAfter: hpDisplay, failed };
+    });
+
+    return { failedTrue, shortfall, shortfallIncludingVoluntary, conservationCount, conservationPositions, rows, hpFinal: hp, failedPhase, failFraction, hadTemporaryDip };
+  }
+
+  const pRushed = rushedOn ? 1 : 0;
+  const pNoRushed = 1 - pRushed;
+
+  // 4通りの組み合わせ(掛かり有無 × 持久力温存90%ロール成功/失敗)を確率で重み付けする
+  const branches = [
+    { prob: pRushed   * STAMINA_KEEP_RATE,       scen: runScenario(true,  true)  },
+    { prob: pRushed   * (1 - STAMINA_KEEP_RATE), scen: runScenario(true,  false) },
+    { prob: pNoRushed * STAMINA_KEEP_RATE,       scen: runScenario(false, true)  },
+    { prob: pNoRushed * (1 - STAMINA_KEEP_RATE), scen: runScenario(false, false) },
+  ].filter(b => b.prob > 0);
+
+  // 持久力温存が発生する時点で「そもそもHPが足りていない」とみなし、完走率にも反映する
+  function isInsufficient(scen){ return scen.failedTrue || scen.conservationCount > 0; }
+
+  const completionRate = branches.reduce((s, b) => s + b.prob * (isInsufficient(b.scen) ? 0 : 1), 0);
+  const conservationRate = branches.reduce((s, b) => s + b.prob * (b.scen.conservationCount > 0 ? 1 : 0), 0);
+  const worstShortfall = branches.reduce((m, b) => Math.max(m, b.scen.shortfallIncludingVoluntary), 0);
+  const additionalRecoveryPct = maxHP > 0 ? (worstShortfall / maxHP) * 100 : 0;
+
+  // 表示用の代表シナリオ: 掛かり・持久力温存とも「発生する」想定(最も厳しめで参考になるケース)
+  const scenRushed = rushedOn ? runScenario(true, true) : runScenario(false, true);
+  const refScenario = scenRushed;
+  const conservationPositionsText = refScenario.conservationPositions.length > 0
+    ? refScenario.conservationPositions.map(p => p.toFixed(0) + '%').join(' / ')
+    : '-';
+  document.getElementById('repositionConsumeShow').textContent =
+    (repositionExtraConsumption > 0 && refScenario.conservationCount > 0) ? '持久力温存により抑制されうる(90%)' : '+' + Math.round(repositionExtraConsumption) + ' pt';
+  document.getElementById('secureLeadConsumeShow').textContent = '+' + Math.round(secureLeadExtraConsumption) + ' pt';
+  document.getElementById('duelConsumeShow').textContent = (duelOn ? '+' : '') + Math.round(duelExtraConsumption) + ' pt';
+
+  // ---- render phase table (show the worst-case representative branch) ----
+  const shownScenario = refScenario;
+  document.getElementById('scenarioNote').textContent = rushedOn
+    ? '表示中: 掛かりが発生し、持久力温存(90%側)も発動した場合のシミュレーション'
+    : '表示中: 掛かりを考慮せず、持久力温存(90%側)は発動した場合のシミュレーション';
+  const tbody = document.getElementById('phaseTable');
+  tbody.innerHTML = shownScenario.rows.map(r => `
+    <tr style="${r.failed ? 'background:#fdeceb;' : ''}">
+      <td>${PHASE_LABEL[r.phase]}${r.failed ? ' ⚠バテ' : ''}</td>
+      <td class="result-cell">${r.v.toFixed(2)}</td>
+      <td class="result-cell">${r.durationSec.toFixed(1)}s</td>
+      <td class="result-cell">${r.recoveryHP > 0 ? '+' + r.recoveryHP.toFixed(0) : '-'}</td>
+      <td class="result-cell">${r.totalConsumption.toFixed(0)}</td>
+      <td class="result-cell">${r.hpAfter.toFixed(0)}</td>
+    </tr>
+  `).join('');
+
+  // ---- render result board ----
+  const board = document.getElementById('resultBoard');
+  const label = document.getElementById('resultLabel');
+  const verdict = document.getElementById('resultVerdict');
+  const sub = document.getElementById('resultSub');
+  const metricsBox = document.getElementById('resultMetrics');
+
+  const isSufficient = completionRate >= 0.9999;
+  if(isSufficient){
+    board.className = 'board ok';
+    verdict.textContent = 'スタミナバッチリ！';
+  } else {
+    board.className = 'board fail';
+    verdict.textContent = 'スタミナが足りてません.....';
+  }
+  label.textContent = 'RESULT — 判定';
+
+  metricsBox.innerHTML = `
+    <div><div class="k">完走率</div><div class="v" style="font-size:26px;">${(completionRate*100).toFixed(0)}%</div></div>
+    <div><div class="k">持久力温存発生率</div><div class="v" style="font-size:26px;">${(conservationRate*100).toFixed(0)}%</div></div>
+    <div><div class="k">持久力温存発生地点</div><div class="v" style="font-size:26px;">${conservationPositionsText}</div></div>
+    <div><div class="k">追加で必要な回復率</div><div class="v" style="font-size:26px; ${additionalRecoveryPct > 0 ? 'color:var(--red);' : ''}">${additionalRecoveryPct > 0 ? '+' + additionalRecoveryPct.toFixed(1) + '%' : '不要'}</div></div>
+  `;
+
+  const trueFailureRate = branches.reduce((s, b) => s + b.prob * (b.scen.failedTrue ? 1 : 0), 0);
+
+  if(isSufficient){
+    sub.innerHTML = `ゴール時点の残りHP目安: <b>${Math.round(shownScenario.hpFinal)}</b> ／ 最大HP: <b>${Math.round(maxHP)}</b>` +
+      (shownScenario.hadTemporaryDip ? '<br><span style="color:var(--gold);">※ レース中に一時的にHPがマイナスになる区間がありますが、回復スキルで持ち直しゴールできる計算です。</span>' : '');
+  } else if(trueFailureRate > 0.0001){
+    sub.innerHTML = `走りきるには、最大HP換算で<b>+${additionalRecoveryPct.toFixed(1)}%</b>分の追加回復(③回復スキルの合計)が必要です。`;
+  } else {
+    sub.innerHTML = `ラストスパートなどのHP消費自体は足りていますが、持久力温存が発生する時点でHP不足と判定しています(位置取り調整・リード確保・追い比べのいずれかが抑制される計算です)。` +
+      `持久力温存を避けるには、最大HP換算で<b>+${additionalRecoveryPct.toFixed(1)}%</b>分の追加回復(③回復スキルの合計)が必要です。`;
+  }
+
+  // ---- rail track visualization (based on shown scenario) ----
+  const track = document.getElementById('railTrack');
+  const totalDist = distance;
+  let html = '';
+  PHASE_ORDER.forEach(phase => {
+    const widthPct = (phaseDistance[phase] / totalDist) * 100;
+    html += `<div class="seg" style="width:${widthPct}%; background:${PHASE_COLOR[phase]};"></div>`;
+  });
+  if(shownScenario.failedPhase){
+    let before = 0;
+    for(const phase of PHASE_ORDER){
+      const widthPct = (phaseDistance[phase] / totalDist) * 100;
+      if(phase === shownScenario.failedPhase){
+        const markPct = before + widthPct * shownScenario.failFraction;
+        html += `<div class="fail-marker" style="left:${markPct}%;"></div>`;
+        break;
+      }
+      before += widthPct;
+    }
+  }
+  track.innerHTML = html;
+}
+
+document.getElementById('venueSelect').addEventListener('change', (e) => {
+  refreshCourseSelectForVenue(e.target.value);
+  const sel = document.getElementById('courseSelect');
+  if(sel.options.length){
+    sel.selectedIndex = 0;
+    loadCourseDistance(sel.value);
+  }
+});
+document.getElementById('courseSelect').addEventListener('change', (e) => {
+  if(e.target.value) loadCourseDistance(e.target.value);
+});
+
+['statSpeed','statStamina','statPower','statGuts','statWisdom','style','distApt','styleApt','surface','baba','mood',
+ 'gutsFormulaA','hpFormulaK','hpFormulaDiv','rushedToggle','rushedDuration','spotStruggleToggle','rushedMult','downhillMult',
+ 'repositionCost','secureLeadCost','secureLeadCount',
+ 'duelToggle','duelDuration','duelPhase','conservePowerToggle','strictModeToggle']
+  .forEach(id => document.getElementById(id).addEventListener('input', recalcAll));
+
+// initial state
+buildTierRows('recoveryTierList', RECOVERY_TIERS, 'rc', false);
+buildTierRows('drainTierList', DRAIN_TIERS, 'dr', true);
+seedCourseDB();
+refreshVenueSelect();
+selectVenueAndCourse('中山', '中山 芝2000m(内)');
+</script>
+</body>
+</html>
